@@ -120,6 +120,7 @@ trait MicroKernelTrait
                 ;
             }
 
+
             $kernelDefinition = $container->getDefinition('kernel');
             $kernelDefinition->addTag('routing.route_loader');
 

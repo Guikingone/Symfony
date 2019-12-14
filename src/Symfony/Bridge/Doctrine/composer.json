@@ -34,6 +34,8 @@
         "symfony/http-kernel": "^5.0",
         "symfony/messenger": "^4.4|^5.0",
         "symfony/doctrine-messenger": "^5.1",
+        "symfony/scheduler": "^5.3",
+        "symfony/doctrine-scheduler": "^5.3",
         "symfony/property-access": "^4.4|^5.0",
         "symfony/property-info": "^5.0",
         "symfony/proxy-manager-bridge": "^4.4|^5.0",

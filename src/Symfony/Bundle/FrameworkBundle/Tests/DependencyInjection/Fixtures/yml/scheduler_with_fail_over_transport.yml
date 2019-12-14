@@ -1,0 +1,6 @@
+framework:
+  scheduler:
+    timezone: 'UTC'
+    path: '/_tasks'
+    transport:
+      dsn: 'failover://(memory://first_in_first_out || memory://last_in_first_out)'

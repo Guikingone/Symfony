@@ -35,6 +35,7 @@
             <xsd:element name="mailer" type="mailer" minOccurs="0" maxOccurs="1" />
             <xsd:element name="http-cache" type="http_cache" minOccurs="0" maxOccurs="1" />
             <xsd:element name="rate-limiter" type="rate_limiter" minOccurs="0" maxOccurs="1" />
+            <xsd:element name="scheduler" type="scheduler" minOccurs="0" maxOccurs="1" />
         </xsd:choice>
 
         <xsd:attribute name="http-method-override" type="xsd:boolean" />
@@ -683,5 +684,68 @@
     <xsd:complexType name="rate_limiter_rate">
         <xsd:attribute name="interval" type="xsd:string" />
         <xsd:attribute name="amount" type="xsd:int" />
+    </xsd:complexType>
+
+    <xsd:complexType name="scheduler">
+        <xsd:sequence>
+            <xsd:element name="transport" type="scheduler_transport" />
+            <xsd:element name="tasks" type="scheduler_tasks" minOccurs="0" />
+        </xsd:sequence>
+        <xsd:attribute name="path" type="xsd:string" />
+        <xsd:attribute name="timezone" type="xsd:string" />
+        <xsd:attribute name="lock_store" default="null" type="xsd:string" />
+    </xsd:complexType>
+
+    <xsd:complexType name="scheduler_transport">
+        <xsd:sequence>
+            <xsd:element name="options" type="scheduler_transport_options" minOccurs="0" />
+        </xsd:sequence>
+        <xsd:attribute name="dsn" type="xsd:string" />
+    </xsd:complexType>
+
+    <xsd:complexType name="scheduler_transport_options">
+        <xsd:attribute name="dsn" type="xsd:string" />
+    </xsd:complexType>
+
+    <xsd:complexType name="scheduler_tasks">
+        <xsd:sequence>
+            <xsd:element name="task" type="scheduler_task" minOccurs="0" />
+        </xsd:sequence>
+    </xsd:complexType>
+
+    <xsd:complexType name="scheduler_task">
+        <xsd:sequence>
+            <xsd:element name="arguments" type="task_argument" minOccurs="0" maxOccurs="unbounded" />
+            <xsd:element name="environment_variables" type="task_environment_variable" minOccurs="0" maxOccurs="unbounded" />
+            <xsd:element name="client_options" type="task_client_option" minOccurs="0" maxOccurs="unbounded" />
+            <xsd:element name="options" type="task_option" minOccurs="0" maxOccurs="unbounded" />
+        </xsd:sequence>
+        <xsd:attribute name="name" type="xsd:string" />
+        <xsd:attribute name="expression" type="xsd:string" />
+        <xsd:attribute name="description" type="xsd:string" />
+        <xsd:attribute name="queued" type="xsd:boolean" />
+        <xsd:attribute name="timezone" type="xsd:integer" />
+        <xsd:attribute name="type" type="xsd:string" />
+        <xsd:attribute name="command" type="xsd:string" />
+        <xsd:attribute name="cwd" type="xsd:string" />
+        <xsd:attribute name="timeout" type="xsd:float" />
+        <xsd:attribute name="url" type="xsd:string" />
+        <xsd:attribute name="method" type="xsd:string" />
+    </xsd:complexType>
+
+    <xsd:complexType name="task_option" mixed="true">
+        <xsd:attribute name="name" type="xsd:string" />
+    </xsd:complexType>
+
+    <xsd:complexType name="task_argument" mixed="true">
+        <xsd:attribute name="name" type="xsd:string" />
+    </xsd:complexType>
+
+    <xsd:complexType name="task_environment_variable" mixed="true">
+        <xsd:attribute name="name" type="xsd:string" />
+    </xsd:complexType>
+
+    <xsd:complexType name="task_client_option" mixed="true">
+        <xsd:attribute name="name" type="xsd:string" />
     </xsd:complexType>
 </xsd:schema>
