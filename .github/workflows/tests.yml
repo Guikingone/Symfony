@@ -151,6 +151,7 @@ jobs:
                     MONGODB_HOST: localhost
                     KAFKA_BROKER: localhost:9092
                     POSTGRES_HOST: localhost
+                    SCHEDULER_REDIS_DSN: redis://127.0.0.1:7006/_symfony_scheduler_tasks
 
             -   name: Run HTTP push tests
                 if: matrix.php == '7.4'

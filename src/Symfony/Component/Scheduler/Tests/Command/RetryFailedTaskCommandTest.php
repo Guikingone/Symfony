@@ -1,0 +1,141 @@
+<?php
+
+/*
+ * This file is part of the Symfony package.
+ *
+ * (c) Fabien Potencier <fabien@symfony.com>
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
+namespace Symfony\Component\Scheduler\Tests\Command;
+
+use PHPUnit\Framework\TestCase;
+use Symfony\Component\Console\Command\Command;
+use Symfony\Component\Console\Tester\CommandTester;
+use Symfony\Component\Scheduler\Command\RetryFailedTaskCommand;
+use Symfony\Component\Scheduler\SchedulerInterface;
+use Symfony\Component\Scheduler\Task\TaskInterface;
+use Symfony\Component\Scheduler\Task\TaskListInterface;
+use Symfony\Component\Scheduler\Worker\WorkerInterface;
+
+/**
+ * @author Guillaume Loulier <contact@guillaumeloulier.fr>
+ *
+ * @experimental in 5.2
+ */
+final class RetryFailedTaskCommandTest extends TestCase
+{
+    public function testCommandIsConfigured(): void
+    {
+        $scheduler = $this->createMock(SchedulerInterface::class);
+        $worker = $this->createMock(WorkerInterface::class);
+
+        $command = new RetryFailedTaskCommand($scheduler, $worker);
+
+        static::assertSame('scheduler:retry:failed', $command->getName());
+        static::assertSame('Retries one or more tasks from the failed tasks', $command->getDescription());
+        static::assertTrue($command->getDefinition()->hasArgument('name'));
+        static::assertSame('Specific task name(s) to retry', $command->getDefinition()->getArgument('name')->getDescription());
+        static::assertTrue($command->getDefinition()->getArgument('name')->isRequired());
+        static::assertTrue($command->getDefinition()->hasOption('force'));
+        static::assertSame('Force the operation without confirmation', $command->getDefinition()->getOption('force')->getDescription());
+        static::assertSame('f', $command->getDefinition()->getOption('force')->getShortcut());
+    }
+
+    public function testCommandCannotRetryUndefinedTask(): void
+    {
+        $scheduler = $this->createMock(SchedulerInterface::class);
+
+        $taskList = $this->createMock(TaskListInterface::class);
+        $taskList->expects(self::once())->method('get')->willReturn(null);
+
+        $worker = $this->createMock(WorkerInterface::class);
+        $worker->expects(self::once())->method('getFailedTasks')->willReturn($taskList);
+
+        $command = new RetryFailedTaskCommand($scheduler, $worker);
+        $tester = new CommandTester($command);
+        $tester->execute([
+            'name' => 'foo',
+        ]);
+
+        static::assertSame(Command::FAILURE, $tester->getStatusCode());
+        static::assertStringContainsString('The task "foo" does not fails', $tester->getDisplay());
+    }
+
+    public function testCommandCannotRetryTaskWithException(): void
+    {
+        $scheduler = $this->createMock(SchedulerInterface::class);
+
+        $task = $this->createMock(TaskInterface::class);
+
+        $taskList = $this->createMock(TaskListInterface::class);
+        $taskList->expects(self::once())->method('get')->willReturn($task);
+
+        $worker = $this->createMock(WorkerInterface::class);
+        $worker->expects(self::once())->method('getFailedTasks')->willReturn($taskList);
+        $worker->expects(self::once())->method('execute')->willThrowException(new \Exception('Random execution error'));
+
+        $command = new RetryFailedTaskCommand($scheduler, $worker);
+        $tester = new CommandTester($command);
+        $tester->setInputs(['yes']);
+        $tester->execute([
+            'name' => 'foo',
+        ]);
+
+        static::assertSame(Command::FAILURE, $tester->getStatusCode());
+        static::assertStringContainsString('An error occurred when trying to retry the task:', $tester->getDisplay());
+        static::assertStringContainsString('Random execution error', $tester->getDisplay());
+    }
+
+    public function testCommandCanRetryTaskWithForceOption(): void
+    {
+        $scheduler = $this->createMock(SchedulerInterface::class);
+
+        $task = $this->createMock(TaskInterface::class);
+        $task->expects(self::once())->method('getName')->willReturn('foo');
+
+        $taskList = $this->createMock(TaskListInterface::class);
+        $taskList->expects(self::once())->method('get')->willReturn($task);
+
+        $worker = $this->createMock(WorkerInterface::class);
+        $worker->expects(self::once())->method('getFailedTasks')->willReturn($taskList);
+        $worker->expects(self::once())->method('execute');
+
+        $command = new RetryFailedTaskCommand($scheduler, $worker);
+        $tester = new CommandTester($command);
+        $tester->execute([
+            'name' => 'foo',
+            '--force' => true,
+        ]);
+
+        static::assertSame(Command::SUCCESS, $tester->getStatusCode());
+        static::assertStringContainsString('The task "foo" has been retried', $tester->getDisplay());
+    }
+
+    public function testCommandCanRetryTask(): void
+    {
+        $scheduler = $this->createMock(SchedulerInterface::class);
+
+        $task = $this->createMock(TaskInterface::class);
+        $task->expects(self::once())->method('getName')->willReturn('foo');
+
+        $taskList = $this->createMock(TaskListInterface::class);
+        $taskList->expects(self::once())->method('get')->willReturn($task);
+
+        $worker = $this->createMock(WorkerInterface::class);
+        $worker->expects(self::once())->method('getFailedTasks')->willReturn($taskList);
+        $worker->expects(self::once())->method('execute');
+
+        $command = new RetryFailedTaskCommand($scheduler, $worker);
+        $tester = new CommandTester($command);
+        $tester->setInputs(['yes']);
+        $tester->execute([
+            'name' => 'foo',
+        ]);
+
+        static::assertSame(Command::SUCCESS, $tester->getStatusCode());
+        static::assertStringContainsString('The task "foo" has been retried', $tester->getDisplay());
+    }
+}

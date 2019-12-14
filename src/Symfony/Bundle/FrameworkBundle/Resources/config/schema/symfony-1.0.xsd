@@ -35,6 +35,7 @@
             <xsd:element name="mailer" type="mailer" minOccurs="0" maxOccurs="1" />
             <xsd:element name="http-cache" type="http_cache" minOccurs="0" maxOccurs="1" />
             <xsd:element name="rate-limiter" type="rate_limiter" minOccurs="0" maxOccurs="1" />
+            <xsd:element name="scheduler" type="scheduler" minOccurs="0" maxOccurs="1" />
         </xsd:choice>
 
         <xsd:attribute name="http-method-override" type="xsd:boolean" />
@@ -677,5 +678,12 @@
     <xsd:complexType name="rate_limiter_rate">
         <xsd:attribute name="interval" type="xsd:string" />
         <xsd:attribute name="amount" type="xsd:int" />
+    </xsd:complexType>
+
+    <xsd:complexType name="scheduler">
+        <xsd:attribute name="path" type="xsd:string" />
+        <xsd:attribute name="timezone" type="xsd:string" />
+        <xsd:attribute name="transport" type="xsd:string" />
+        <xsd:attribute name="lock_store" default="null" type="xsd:string" />
     </xsd:complexType>
 </xsd:schema>

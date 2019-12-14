@@ -31,6 +31,7 @@ use Symfony\Component\Mailer\Mailer;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Notifier\Notifier;
 use Symfony\Component\PropertyInfo\PropertyInfoExtractorInterface;
+use Symfony\Component\Scheduler\SchedulerInterface;
 use Symfony\Component\RateLimiter\TokenBucketLimiter;
 use Symfony\Component\Serializer\Serializer;
 use Symfony\Component\Translation\Translator;
@@ -137,6 +138,7 @@ class Configuration implements ConfigurationInterface
         $this->addSecretsSection($rootNode);
         $this->addNotifierSection($rootNode);
         $this->addRateLimiterSection($rootNode);
+        $this->addSchedulerSection($rootNode);
 
         return $treeBuilder;
     }
@@ -1841,6 +1843,36 @@ class Configuration implements ConfigurationInterface
                                     ->end()
                                 ->end()
                             ->end()
+                        ->end()
+                    ->end()
+                ->end()
+            ->end()
+        ;
+    }
+
+    private function addSchedulerSection(ArrayNodeDefinition $rootNode): void
+    {
+        $rootNode
+            ->children()
+                ->arrayNode('scheduler')
+                    ->info('Scheduler configuration')
+                    ->{!class_exists(FullStack::class) && class_exists(SchedulerInterface::class) ? 'canBeDisabled' : 'canBeEnabled'}()
+                    ->children()
+                        ->scalarNode('path')
+                            ->info('The path used to trigger tasks using http request, default to "/_tasks"')
+                            ->defaultValue('/_tasks')
+                        ->end()
+                        ->scalarNode('timezone')
+                            ->info('The timezone used by every scheduler (if not override in each one), if not defined, the default value will be "UTC"')
+                            ->defaultValue('UTC')
+                        ->end()
+                        ->scalarNode('transport')
+                            ->info('The transport DSN used by the scheduler')
+                            ->cannotBeEmpty()->isRequired()
+                        ->end()
+                        ->scalarNode('lock_store')
+                            ->info('The store used by every worker to prevent overlapping, by default, a FlockStore is created')
+                            ->defaultNull()
                         ->end()
                     ->end()
                 ->end()

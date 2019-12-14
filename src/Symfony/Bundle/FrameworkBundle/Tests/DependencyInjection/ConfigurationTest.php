@@ -22,6 +22,7 @@ use Symfony\Component\Lock\Store\SemaphoreStore;
 use Symfony\Component\Mailer\Mailer;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Notifier\Notifier;
+use Symfony\Component\Scheduler\SchedulerInterface;
 
 class ConfigurationTest extends TestCase
 {
@@ -332,6 +333,43 @@ class ConfigurationTest extends TestCase
         ]);
     }
 
+    /**
+     * @dataProvider provideValidSchedulerConfiguration
+     */
+    public function testValidSchedulerConfiguration(array $schedulerConfig, array $processedConfig): void
+    {
+        $processor = new Processor();
+        $configuration = new Configuration(true);
+        $config = $processor->processConfiguration($configuration, [
+            [
+                'scheduler' => $schedulerConfig,
+            ],
+        ]);
+
+        static::assertArrayHasKey('scheduler', $config);
+        static::assertEquals($processedConfig, $config['scheduler']);
+    }
+
+    public function provideValidSchedulerConfiguration(): \Generator
+    {
+        yield [
+            [
+                'enabled' => true,
+                'timezone' => 'UTC',
+                'path' => '/_tasks',
+                'transport' => 'memory://first_in_first_out',
+                'lock_store' => null,
+            ],
+            [
+                'enabled' => true,
+                'timezone' => 'UTC',
+                'path' => '/_tasks',
+                'transport' => 'memory://first_in_first_out',
+                'lock_store' => null,
+            ],
+        ];
+    }
+
     protected static function getBundleDefaultConfig()
     {
         return [
@@ -534,6 +572,12 @@ class ConfigurationTest extends TestCase
             'rate_limiter' => [
                 'enabled' => false,
                 'limiters' => [],
+            ],
+            'scheduler' => [
+                'enabled' => !class_exists(FullStack::class) && class_exists(SchedulerInterface::class),
+                'timezone' => 'UTC',
+                'path' => '/_tasks',
+                'lock_store' => null,
             ],
         ];
     }

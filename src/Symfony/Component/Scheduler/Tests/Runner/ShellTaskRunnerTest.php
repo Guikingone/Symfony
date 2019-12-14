@@ -1,0 +1,70 @@
+<?php
+
+/*
+ * This file is part of the Symfony package.
+ *
+ * (c) Fabien Potencier <fabien@symfony.com>
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
+namespace Symfony\Component\Scheduler\Tests\Runner;
+
+use PHPUnit\Framework\TestCase;
+use Symfony\Component\Scheduler\Runner\ShellTaskRunner;
+use Symfony\Component\Scheduler\Task\AbstractTask;
+use Symfony\Component\Scheduler\Task\ShellTask;
+
+/**
+ * @author Guillaume Loulier <contact@guillaumeloulier.fr>
+ */
+final class ShellTaskRunnerTest extends TestCase
+{
+    public function testRunnerCantSupportWrongTask(): void
+    {
+        $task = new FooTask('test');
+
+        $runner = new ShellTaskRunner();
+        static::assertFalse($runner->support($task));
+        static::assertTrue($runner->support(new ShellTask('test', ['echo', 'Symfony'])));
+    }
+
+    public function testRunnerCanSupportValidTaskWithoutOutput(): void
+    {
+        $task = new ShellTask('test', ['echo', 'Symfony']);
+        $task->setEnvironmentVariables(['env' => 'test']);
+        $task->setTimeout(10);
+
+        $runner = new ShellTaskRunner();
+        static::assertTrue($runner->support($task));
+        static::assertNull($runner->run($task)->getOutput());
+    }
+
+    public function testRunnerCanSupportValidTaskWithOutput(): void
+    {
+        $task = new ShellTask('test', ['echo', 'Symfony']);
+        $task->setEnvironmentVariables(['env' => 'test']);
+        $task->setOutput(true);
+
+        $runner = new ShellTaskRunner();
+        static::assertTrue($runner->support($task));
+        static::assertSame('Symfony', $runner->run($task)->getOutput());
+    }
+
+    public function testRunnerCanReturnEmptyOutputOnBackgroundTask(): void
+    {
+        $task = new ShellTask('test', ['echo', 'Symfony']);
+        $task->setEnvironmentVariables(['env' => 'test']);
+        $task->setOutput(true);
+        $task->setBackground(true);
+
+        $runner = new ShellTaskRunner();
+        static::assertTrue($runner->support($task));
+        static::assertSame('Task is running in background, output is not available', $runner->run($task)->getOutput());
+    }
+}
+
+final class FooTask extends AbstractTask
+{
+}

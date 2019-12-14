@@ -132,6 +132,11 @@ use Symfony\Component\RateLimiter\LimiterInterface;
 use Symfony\Component\RateLimiter\Storage\CacheStorage;
 use Symfony\Component\Routing\Loader\AnnotationDirectoryLoader;
 use Symfony\Component\Routing\Loader\AnnotationFileLoader;
+use Symfony\Component\Scheduler\Runner\RunnerInterface;
+use Symfony\Component\Scheduler\SchedulerAwareInterface;
+use Symfony\Component\Scheduler\SchedulerInterface;
+use Symfony\Component\Scheduler\Transport\TransportFactoryInterface as SchedulerTransportFactoryInterface;
+use Symfony\Component\Scheduler\Transport\TransportInterface as SchedulerTransportInterface;
 use Symfony\Component\Security\Core\Security;
 use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
 use Symfony\Component\Serializer\Encoder\DecoderInterface;
@@ -156,6 +161,7 @@ use Symfony\Component\Yaml\Yaml;
 use Symfony\Contracts\Cache\CacheInterface;
 use Symfony\Contracts\Cache\CallbackInterface;
 use Symfony\Contracts\Cache\TagAwareCacheInterface;
+use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
 use Symfony\Contracts\Service\ResetInterface;
 use Symfony\Contracts\Service\ServiceSubscriberInterface;
@@ -181,6 +187,7 @@ class FrameworkExtension extends Extension
     private $httpClientConfigEnabled = false;
     private $notifierConfigEnabled = false;
     private $lockConfigEnabled = false;
+    private $schedulerConfigEnabled = false;
 
     /**
      * Responds to the app.config configuration parameter.
@@ -386,6 +393,10 @@ class FrameworkExtension extends Extension
             $this->registerNotifierConfiguration($config['notifier'], $container, $loader);
         }
 
+        if ($this->schedulerConfigEnabled = $this->isConfigEnabled($container, $config['scheduler'])) {
+            $this->registerSchedulerConfiguration($config['scheduler'], $container, $loader);
+        }
+
         $propertyInfoEnabled = $this->isConfigEnabled($container, $config['property_info']);
         $this->registerValidationConfiguration($config['validation'], $container, $loader, $propertyInfoEnabled);
         $this->registerHttpCacheConfiguration($config['http_cache'], $container);
@@ -517,7 +528,14 @@ class FrameworkExtension extends Extension
             ->addTag('mime.mime_type_guesser');
         $container->registerForAutoconfiguration(LoggerAwareInterface::class)
             ->addMethodCall('setLogger', [new Reference('logger')]);
-
+        $container->registerForAutoconfiguration(SchedulerTransportFactoryInterface::class)
+            ->addTag('scheduler.transport_factory');
+        $container->registerForAutoconfiguration(SchedulerTransportInterface::class)
+            ->addTag('scheduler.transport');
+        $container->registerForAutoconfiguration(RunnerInterface::class)
+            ->addTag('scheduler.runner');
+        $container->registerForAutoconfiguration(SchedulerAwareInterface::class)
+            ->addTag('scheduler.entry_point');
         if (!$container->getParameter('kernel.debug')) {
             // remove tagged iterator argument for resource checkers
             $container->getDefinition('config_cache_factory')->setArguments([]);
@@ -659,6 +677,10 @@ class FrameworkExtension extends Extension
 
         if ($this->notifierConfigEnabled) {
             $loader->load('notifier_debug.php');
+        }
+
+        if ($this->schedulerConfigEnabled) {
+            $loader->load('scheduler_debug.php');
         }
 
         $container->setParameter('profiler_listener.only_exceptions', $config['only_exceptions']);
@@ -2300,6 +2322,44 @@ class FrameworkExtension extends Extension
         }
 
         return $trustedHeaders;
+    }
+
+    private function registerSchedulerConfiguration(array $config, ContainerBuilder $container, PhpFileLoader $loader): void
+    {
+        if (!interface_exists(SchedulerInterface::class)) {
+            throw new LogicException('Scheduler support cannot be enabled as the Scheduler component is not installed. Try running "composer require symfony/scheduler".');
+        }
+
+        $container->setParameter('scheduler.timezone', new \DateTimeZone($config['timezone']));
+        $container->setParameter('scheduler.trigger_path', $config['path']);
+
+        $loader->load('scheduler.php');
+        $loader->load('scheduler_bridge.php');
+
+        $container->register('scheduler.transport', SchedulerTransportInterface::class)
+            ->setFactory([new Reference('scheduler.transport_factory'), 'createTransport'])
+            ->setArguments([
+                $config['transport'], [], new Reference('serializer'),
+            ])
+            ->addTag('scheduler.transport')
+        ;
+
+        $container->register('scheduler.scheduler', SchedulerInterface::class)
+            ->setArguments([
+                $container->getParameter('scheduler.timezone'),
+                new Reference('scheduler.transport'),
+                new Reference(EventDispatcherInterface::class, ContainerInterface::NULL_ON_INVALID_REFERENCE),
+                new Reference(MessageBusInterface::class, ContainerInterface::NULL_ON_INVALID_REFERENCE),
+            ])
+        ;
+        $container->setAlias(SchedulerInterface::class, 'scheduler.scheduler');
+        $container->registerAliasForArgument('scheduler.scheduler', SchedulerInterface::class, 'scheduler');
+
+        $container->getDefinition('scheduler.task_subscriber')->setArgument(4, $config['path']);
+
+        if (null !== $config['lock_store'] && 0 !== strpos('@', $config['lock_store'])) {
+            $container->getDefinition('scheduler.worker')->setArgument(4, new Reference($config['lock_store']));
+        }
     }
 
     /**

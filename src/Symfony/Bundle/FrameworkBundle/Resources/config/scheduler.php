@@ -1,0 +1,211 @@
+<?php
+
+/*
+ * This file is part of the Symfony package.
+ *
+ * (c) Fabien Potencier <fabien@symfony.com>
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
+namespace Symfony\Component\DependencyInjection\Loader\Configurator;
+
+use Symfony\Bundle\FrameworkBundle\Console\Application;
+use Symfony\Component\Scheduler\Command\ConsumeTasksCommand;
+use Symfony\Component\Scheduler\Command\ListFailedTasksCommand;
+use Symfony\Component\Scheduler\Command\ListTasksCommand;
+use Symfony\Component\Scheduler\Command\RebootSchedulerCommand;
+use Symfony\Component\Scheduler\Command\RemoveFailedTaskCommand;
+use Symfony\Component\Scheduler\Command\RetryFailedTaskCommand;
+use Symfony\Component\Scheduler\EventListener\StopWorkerOnSigtermSignalSubscriber;
+use Symfony\Component\Scheduler\EventListener\TaskExecutionSubscriber;
+use Symfony\Component\Scheduler\EventListener\TaskLoggerSubscriber;
+use Symfony\Component\Scheduler\Transport\FilesystemTransportFactory;
+use Symfony\Component\Messenger\MessageBusInterface;
+use Symfony\Component\Scheduler\EventListener\TaskSubscriber;
+use Symfony\Component\Scheduler\ExecutionModeOrchestrator;
+use Symfony\Component\Scheduler\ExecutionModeOrchestratorInterface;
+use Symfony\Component\Scheduler\Expression\ExpressionFactory;
+use Symfony\Component\Scheduler\Messenger\TaskMessageHandler;
+use Symfony\Component\Scheduler\Runner\CallbackTaskRunner;
+use Symfony\Component\Scheduler\Runner\CommandTaskRunner;
+use Symfony\Component\Scheduler\Runner\HttpTaskRunner;
+use Symfony\Component\Scheduler\Runner\MessengerTaskRunner;
+use Symfony\Component\Scheduler\Runner\NotificationTaskRunner;
+use Symfony\Component\Scheduler\Runner\NullTaskRunner;
+use Symfony\Component\Scheduler\Runner\ShellTaskRunner;
+use Symfony\Component\Scheduler\Serializer\TaskNormalizer;
+use Symfony\Component\Scheduler\Task\TaskExecutionTracker;
+use Symfony\Component\Scheduler\Task\TaskExecutionTrackerInterface;
+use Symfony\Component\Scheduler\Transport\InMemoryTransportFactory;
+use Symfony\Component\Scheduler\Transport\TransportFactory;
+use Symfony\Component\Scheduler\Worker\Worker;
+use Symfony\Component\Scheduler\Worker\WorkerInterface;
+use Symfony\Component\Stopwatch\Stopwatch;
+
+return static function (ContainerConfigurator $container): void {
+    $container->services()
+        ->set('scheduler.command.consume', ConsumeTasksCommand::class)
+            ->args([
+                service('scheduler.scheduler'),
+                service('scheduler.worker'),
+                service('event_dispatcher'),
+                service('logger')->nullOnInvalid(),
+            ])
+            ->tag('console.command')
+            ->tag('monolog.logger', [
+                'channel' => 'scheduler',
+            ])
+
+        ->set('scheduler.command.list_failed', ListFailedTasksCommand::class)
+            ->args([
+                service('scheduler.worker'),
+            ])
+            ->tag('console.command')
+
+        ->set('scheduler.command.list', ListTasksCommand::class)
+            ->args([
+                service('scheduler.scheduler'),
+            ])
+            ->tag('console.command')
+
+        ->set('scheduler.command.reboot', RebootSchedulerCommand::class)
+            ->args([
+                service('scheduler.scheduler'),
+                service('scheduler.worker'),
+            ])
+            ->tag('console.command')
+
+        ->set('scheduler.command.remove_failed', RemoveFailedTaskCommand::class)
+            ->args([
+                service('scheduler.scheduler'),
+                service('scheduler.worker'),
+            ])
+            ->tag('console.command')
+
+        ->set('scheduler.command.retry_failed', RetryFailedTaskCommand::class)
+            ->args([
+                service('scheduler.scheduler'),
+                service('scheduler.worker'),
+            ])
+            ->tag('console.command')
+
+        ->set('scheduler.application', Application::class)
+            ->args([
+                service('kernel'),
+            ])
+
+        // Transports factories
+        ->set('scheduler.transport_factory', TransportFactory::class)
+            ->args([
+                tagged_iterator('scheduler.transport_factory'),
+            ])
+
+        ->set('scheduler.transport_factory.memory', InMemoryTransportFactory::class)
+            ->tag('scheduler.transport_factory')
+
+        ->set('scheduler.transport_factory.filesystem', FilesystemTransportFactory::class)
+            ->tag('scheduler.transport_factory')
+
+        // ExpressionFactory & ExecutionModeOrchestrator
+        ->set('scheduler.expression_factory', ExpressionFactory::class)
+
+        ->set('scheduler.execution_mode_orchestrator', ExecutionModeOrchestrator::class)
+        ->alias(ExecutionModeOrchestratorInterface::class, 'scheduler.execution_mode_orchestrator')
+
+        // Runners
+        ->set('scheduler.shell_runner', ShellTaskRunner::class)
+            ->tag('scheduler.runner')
+
+        ->set('scheduler.command_runner', CommandTaskRunner::class)
+            ->args([
+                service('scheduler.application'),
+            ])
+            ->tag('scheduler.runner')
+
+        ->set('scheduler.callback_runner', CallbackTaskRunner::class)
+            ->tag('scheduler.runner')
+
+        ->set('scheduler.http_runner', HttpTaskRunner::class)
+            ->args([
+                service('http_client')->nullOnInvalid(),
+            ])
+            ->tag('scheduler.runner')
+
+        ->set('scheduler.messenger_runner', MessengerTaskRunner::class)
+            ->args([
+                service(MessageBusInterface::class)->nullOnInvalid(),
+            ])
+            ->tag('scheduler.runner')
+
+        ->set('scheduler.notifier_runner', NotificationTaskRunner::class)
+            ->args([
+                service('notifier')->nullOnInvalid(),
+            ])
+            ->tag('scheduler.runner')
+
+        ->set('scheduler.null_runner', NullTaskRunner::class)
+            ->tag('scheduler.runner')
+
+        // Task normalizer
+        ->set('scheduler.normalizer', TaskNormalizer::class)
+            ->args([
+                service('serializer.normalizer.datetime'),
+                service('serializer.normalizer.datetimezone'),
+                service('serializer.normalizer.dateinterval'),
+                service('serializer.normalizer.object'),
+            ])
+            ->tag('serializer.normalizer')
+
+        // Messenger
+        ->set('scheduler.task_message.handler', TaskMessageHandler::class)
+            ->args([
+                service('scheduler.worker'),
+            ])
+            ->tag('messenger.message_handler')
+
+        // Subscribers
+        ->set('scheduler.task_subscriber', TaskSubscriber::class)
+            ->args([
+                service('scheduler.scheduler'),
+                service('scheduler.worker'),
+                service('event_dispatcher'),
+                service('logger')->nullOnInvalid(),
+            ])
+            ->tag('kernel.event_subscriber')
+
+        ->set('scheduler.task_execution.subscriber', TaskExecutionSubscriber::class)
+            ->args([
+                service('scheduler.scheduler'),
+            ])
+            ->tag('kernel.event_subscriber')
+
+        ->set('scheduler.task_logger.subscriber', TaskLoggerSubscriber::class)
+            ->tag('kernel.event_subscriber')
+
+        ->set('scheduler.stop_worker_sigterm_signal.subscriber', StopWorkerOnSigtermSignalSubscriber::class)
+            ->tag('kernel.event_subscriber')
+
+        // Tracker
+        ->set('scheduler.stop_watch', Stopwatch::class)
+        ->set('scheduler.task_execution.tracker', TaskExecutionTracker::class)
+            ->args([
+                service('scheduler.stop_watch'),
+            ])
+        ->alias(TaskExecutionTrackerInterface::class, 'scheduler.task_execution.tracker')
+
+        // Worker
+        ->set('scheduler.worker', Worker::class)
+            ->args([
+                tagged_iterator('scheduler.runner'),
+                service('scheduler.task_execution.tracker'),
+                service('event_dispatcher')->nullOnInvalid(),
+                service('logger')->nullOnInvalid(),
+            ])
+            ->tag('monolog.logger', [
+                'channel' => 'scheduler',
+            ])
+        ->alias(WorkerInterface::class, 'scheduler.worker')
+    ;
+};

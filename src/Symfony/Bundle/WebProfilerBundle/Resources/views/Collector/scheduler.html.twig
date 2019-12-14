@@ -1,0 +1,83 @@
+{% extends '@WebProfiler/Profiler/layout.html.twig' %}
+
+{% import _self as helper %}
+
+{% block toolbar %}
+    {% set scheduled_tasks = collector.tasks['scheduledTasks'] %}
+
+    {% if scheduled_tasks|length > 0 %}
+        {% set icon %}
+            {{ include('@WebProfiler/Icon/scheduler.svg') }}
+            <span class="sf-toolbar-value">
+                {{- scheduled_tasks|length -}}
+            </span>
+        {% endset %}
+
+        {% set text %}
+            <div class="sf-toolbar-info-piece">
+                <b>{{ 'Scheduled tasks' }}</b>
+                <span class="sf-toolbar-status">
+                    {{- scheduled_tasks|length -}}
+                </span>
+            </div>
+
+            <div class="sf-toolbar-info-piece">
+                <b>{{ 'Executed tasks' }}</b>
+                <span class="sf-toolbar-status">
+                    {{- collector.tasks['executedTasks']|length -}}
+                </span>
+            </div>
+
+            <div class="sf-toolbar-info-piece">
+                <b>{{ 'Failed tasks' }}</b>
+                <span class="sf-toolbar-status">
+                    {{- collector.tasks['failedTasks']|length -}}
+                </span>
+            </div>
+        {% endset %}
+
+        {{ include('@WebProfiler/Profiler/toolbar_item.html.twig', {link: false}) }}
+    {% endif %}
+{% endblock %}
+
+{% block menu %}
+    <span class="label {{ collector.tasks['scheduledTasks'] is empty ? ' disabled' }}">
+        <span class="icon">{{ include('@WebProfiler/Icon/scheduler.svg') }}</span>
+        <strong>Tasks</strong>
+    </span>
+{% endblock %}
+
+{% block panel %}
+    {% import _self as helper %}
+
+    <h2>Tasks</h2>
+
+    {% if collector.tasks['scheduledTasks'] is empty %}
+        <div class="empty">
+            <p>No tasks have been scheduled.</p>
+        </div>
+    {% else %}
+        <div class="sf-tabs tasks-scheduler">
+            <div class="tab">
+                {% set tasks = collector.scheduledTasks %}
+                <h3 class="tab-title">All<span class="badge">{{ tasks|length }}</span></h3>
+
+                <div class="tab-content">
+                    <p class="text-muted">Ordered list of scheduled tasks across all your schedulers</p>
+                    {{ helper.render_scheduler_tasks(tasks, true) }}
+                </div>
+            </div>
+
+            {% for scheduler in collector.scheduler %}
+                {% set tasks = scheduler.tasks %}
+                {% set scheduled_tasks = scheduler.scheduled_tasks %}
+                {% set timezone = scheduler.timezone %}
+
+                <div class="tab-content">
+                    <p class="text-muted">Ordered list of scheduled tasks across all your schedulers</p>
+                    {{ helper.render_scheduler_tasks(tasks, true) }}
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+{% endblock %}
