@@ -25,6 +25,7 @@ final class Connection
         'api_key' => null,
         'endpoint' => 'https://pubsub.googleapis.com',
         'topic' => null,
+        'kms_key_name' => null,
     ];
 
     private $configuration;
@@ -39,7 +40,7 @@ final class Connection
     public static function fromDsn(string $dsn, array $options = [], HttpClientInterface $client = null): self
     {
         if (false === $parsedUrl = parse_url($dsn)) {
-            throw new InvalidArgumentException(sprintf('The given Amazon SQS DSN "%s" is invalid.', $dsn));
+            throw new InvalidArgumentException(sprintf('The given Google Pub Sub DSN "%s" is invalid.', $dsn));
         }
 
         $query = [];
@@ -51,6 +52,7 @@ final class Connection
             'access_token' => $options['access_token'] ?? (urldecode($parsedUrl['token'] ?? '') ?: self::DEFAULT_OPTIONS['access_token']),
             'api_key' => $options['api_key'] ?? (urldecode($parsedUrl['key'] ?? '') ?: self::DEFAULT_OPTIONS['api_key']),
             'topic' => $options['topic'] ?? (urldecode($parsedUrl['topic'] ?? '') ?: self::DEFAULT_OPTIONS['topic']),
+            'kms_key_name' => $options['kms_key_name'] ?? (urldecode($parsedUrl['kms_key_name'] ?? '') ?: self::DEFAULT_OPTIONS['kms_key_name']),
         ];
 
         return new self($configuration, $client);
