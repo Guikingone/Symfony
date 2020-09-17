@@ -133,6 +133,7 @@ use Symfony\Component\RateLimiter\Storage\CacheStorage;
 use Symfony\Component\Routing\Loader\AnnotationDirectoryLoader;
 use Symfony\Component\Routing\Loader\AnnotationFileLoader;
 use Symfony\Component\Scheduler\Runner\RunnerInterface;
+use Symfony\Component\Scheduler\SchedulePolicy\PolicyInterface;
 use Symfony\Component\Scheduler\SchedulerAwareInterface;
 use Symfony\Component\Scheduler\SchedulerInterface;
 use Symfony\Component\Scheduler\Transport\TransportFactoryInterface as SchedulerTransportFactoryInterface;
@@ -536,6 +537,8 @@ class FrameworkExtension extends Extension
             ->addTag('scheduler.runner');
         $container->registerForAutoconfiguration(SchedulerAwareInterface::class)
             ->addTag('scheduler.entry_point');
+        $container->registerForAutoconfiguration(PolicyInterface::class)
+            ->addTag('scheduler.schedule_policy');
         if (!$container->getParameter('kernel.debug')) {
             // remove tagged iterator argument for resource checkers
             $container->getDefinition('config_cache_factory')->setArguments([]);
@@ -2355,10 +2358,10 @@ class FrameworkExtension extends Extension
         $container->setAlias(SchedulerInterface::class, 'scheduler.scheduler');
         $container->registerAliasForArgument('scheduler.scheduler', SchedulerInterface::class, 'scheduler');
 
-        $container->getDefinition('scheduler.task_subscriber')->setArgument(4, $config['path']);
+        $container->getDefinition('scheduler.task_subscriber')->setArgument(5, $config['path']);
 
         if (null !== $config['lock_store'] && 0 !== strpos('@', $config['lock_store'])) {
-            $container->getDefinition('scheduler.worker')->setArgument(4, new Reference($config['lock_store']));
+            $container->getDefinition('scheduler.worker')->setArgument(5, new Reference($config['lock_store']));
         }
     }
 

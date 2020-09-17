@@ -18,7 +18,7 @@ use Symfony\Component\Scheduler\Event\WorkerStartedEvent;
 /**
  * @author Guillaume Loulier <contact@guillaumeloulier.fr>
  *
- * @experimental in 5.2
+ * @experimental in 5.3
  */
 final class StopWorkerOnSigtermSignalSubscriber implements EventSubscriberInterface
 {

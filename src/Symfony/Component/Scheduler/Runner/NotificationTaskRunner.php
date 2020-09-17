@@ -19,7 +19,7 @@ use Symfony\Component\Scheduler\Task\TaskInterface;
 /**
  * @author Guillaume Loulier <contact@guillaumeloulier.fr>
  *
- * @experimental in 5.2
+ * @experimental in 5.3
  */
 final class NotificationTaskRunner implements RunnerInterface
 {
@@ -35,15 +35,23 @@ final class NotificationTaskRunner implements RunnerInterface
      */
     public function run(TaskInterface $task): Output
     {
+        $task->setExecutionState(TaskInterface::RUNNING);
+
         try {
             if (null === $this->notifier) {
+                $task->setExecutionState(TaskInterface::ERRORED);
+
                 return new Output($task, 'The task cannot be handled as the notifier is not defined', Output::ERROR);
             }
 
             $this->notifier->send($task->getNotification(), ...$task->getRecipients());
 
+            $task->setExecutionState(TaskInterface::SUCCEED);
+
             return new Output($task, null);
         } catch (\Throwable $throwable) {
+            $task->setExecutionState(TaskInterface::ERRORED);
+
             return new Output($task, $throwable->getMessage(), Output::ERROR);
         }
     }

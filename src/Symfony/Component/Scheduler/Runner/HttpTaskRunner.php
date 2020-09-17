@@ -20,7 +20,7 @@ use Symfony\Contracts\HttpClient\HttpClientInterface;
 /**
  * @author Guillaume Loulier <contact@guillaumeloulier.fr>
  *
- * @experimental in 5.2
+ * @experimental in 5.3
  */
 final class HttpTaskRunner implements RunnerInterface
 {
@@ -36,11 +36,16 @@ final class HttpTaskRunner implements RunnerInterface
      */
     public function run(TaskInterface $task): Output
     {
+        $task->setExecutionState(TaskInterface::RUNNING);
+
         try {
             $response = $this->httpClient->request($task->getMethod(), $task->getUrl(), $task->getClientOptions());
+            $task->setExecutionState(TaskInterface::SUCCEED);
 
             return new Output($task, $response->getContent());
         } catch (\Throwable $exception) {
+            $task->setExecutionState(TaskInterface::ERRORED);
+
             return new Output($task, $exception->getMessage(), Output::ERROR);
         }
     }

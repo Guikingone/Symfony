@@ -21,11 +21,18 @@ use Symfony\Component\Scheduler\Command\RetryFailedTaskCommand;
 use Symfony\Component\Scheduler\EventListener\StopWorkerOnSigtermSignalSubscriber;
 use Symfony\Component\Scheduler\EventListener\TaskExecutionSubscriber;
 use Symfony\Component\Scheduler\EventListener\TaskLoggerSubscriber;
+use Symfony\Component\Scheduler\SchedulePolicy\BatchPolicy;
+use Symfony\Component\Scheduler\SchedulePolicy\DeadlinePolicy;
+use Symfony\Component\Scheduler\SchedulePolicy\ExecutionDurationPolicy;
+use Symfony\Component\Scheduler\SchedulePolicy\FirstInFirstOutPolicy;
+use Symfony\Component\Scheduler\SchedulePolicy\IdlePolicy;
+use Symfony\Component\Scheduler\SchedulePolicy\NicePolicy;
+use Symfony\Component\Scheduler\SchedulePolicy\RoundRobinPolicy;
+use Symfony\Component\Scheduler\SchedulePolicy\SchedulePolicyOrchestrator;
+use Symfony\Component\Scheduler\SchedulePolicy\SchedulePolicyOrchestratorInterface;
 use Symfony\Component\Scheduler\Transport\FilesystemTransportFactory;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Scheduler\EventListener\TaskSubscriber;
-use Symfony\Component\Scheduler\ExecutionModeOrchestrator;
-use Symfony\Component\Scheduler\ExecutionModeOrchestratorInterface;
 use Symfony\Component\Scheduler\Expression\ExpressionFactory;
 use Symfony\Component\Scheduler\Messenger\TaskMessageHandler;
 use Symfony\Component\Scheduler\Runner\CallbackTaskRunner;
@@ -74,6 +81,8 @@ return static function (ContainerConfigurator $container): void {
             ->args([
                 service('scheduler.scheduler'),
                 service('scheduler.worker'),
+                service('event_dispatcher'),
+                service('logger')->nullOnInvalid(),
             ])
             ->tag('console.command')
 
@@ -88,6 +97,8 @@ return static function (ContainerConfigurator $container): void {
             ->args([
                 service('scheduler.scheduler'),
                 service('scheduler.worker'),
+                service('event_dispatcher'),
+                service('logger')->nullOnInvalid(),
             ])
             ->tag('console.command')
 
@@ -108,11 +119,29 @@ return static function (ContainerConfigurator $container): void {
         ->set('scheduler.transport_factory.filesystem', FilesystemTransportFactory::class)
             ->tag('scheduler.transport_factory')
 
-        // ExpressionFactory & ExecutionModeOrchestrator
+        // ExpressionFactory & SchedulerPolicyOrchestrator + Policies
         ->set('scheduler.expression_factory', ExpressionFactory::class)
 
-        ->set('scheduler.execution_mode_orchestrator', ExecutionModeOrchestrator::class)
-        ->alias(ExecutionModeOrchestratorInterface::class, 'scheduler.execution_mode_orchestrator')
+        ->set('scheduler.schedule_policy_orchestrator', SchedulePolicyOrchestrator::class)
+            ->args([
+                tagged_iterator('scheduler.schedule_policy')
+            ])
+        ->alias(SchedulePolicyOrchestratorInterface::class, 'scheduler.schedule_policy_orchestrator')
+
+        ->set('scheduler.batch_policy', BatchPolicy::class)
+            ->tag('scheduler.schedule_policy')
+        ->set('scheduler.deadline_policy', DeadlinePolicy::class)
+            ->tag('scheduler.schedule_policy')
+        ->set('scheduler.execution_duration_policy', ExecutionDurationPolicy::class)
+            ->tag('scheduler.schedule_policy')
+        ->set('scheduler.first_in_first_ou_policy', FirstInFirstOutPolicy::class)
+            ->tag('scheduler.schedule_policy')
+        ->set('scheduler.idle_policy', IdlePolicy::class)
+            ->tag('scheduler.schedule_policy')
+        ->set('scheduler.nice_policy', NicePolicy::class)
+            ->tag('scheduler.schedule_policy')
+        ->set('scheduler.round_robin_policy', RoundRobinPolicy::class)
+            ->tag('scheduler.schedule_policy')
 
         // Runners
         ->set('scheduler.shell_runner', ShellTaskRunner::class)
@@ -170,6 +199,7 @@ return static function (ContainerConfigurator $container): void {
             ->args([
                 service('scheduler.scheduler'),
                 service('scheduler.worker'),
+                service('serializer'),
                 service('event_dispatcher'),
                 service('logger')->nullOnInvalid(),
             ])
@@ -198,6 +228,7 @@ return static function (ContainerConfigurator $container): void {
         // Worker
         ->set('scheduler.worker', Worker::class)
             ->args([
+                service('scheduler.scheduler'),
                 tagged_iterator('scheduler.runner'),
                 service('scheduler.task_execution.tracker'),
                 service('event_dispatcher')->nullOnInvalid(),

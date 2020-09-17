@@ -11,33 +11,40 @@
 
 namespace Symfony\Component\Scheduler\Command;
 
+use Psr\Log\LoggerInterface;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Helper\Table;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
+use Symfony\Component\Scheduler\EventListener\StopWorkerOnTaskLimitSubscriber;
 use Symfony\Component\Scheduler\Expression\ExpressionFactory;
 use Symfony\Component\Scheduler\SchedulerInterface;
 use Symfony\Component\Scheduler\Task\TaskInterface;
 use Symfony\Component\Scheduler\Worker\WorkerInterface;
+use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
 
 /**
  * @author Guillaume Loulier <contact@guillaumeloulier.fr>
  *
- * @experimental in 5.2
+ * @experimental in 5.3
  */
 final class RebootSchedulerCommand extends Command
 {
     private $scheduler;
     private $worker;
+    private $eventDispatcher;
+    private $logger;
 
     protected static $defaultName = 'scheduler:reboot';
 
-    public function __construct(SchedulerInterface $scheduler, WorkerInterface $worker)
+    public function __construct(SchedulerInterface $scheduler, WorkerInterface $worker, EventDispatcherInterface $eventDispatcher, LoggerInterface $logger = null)
     {
         $this->scheduler = $scheduler;
         $this->worker = $worker;
+        $this->eventDispatcher = $eventDispatcher;
+        $this->logger = $logger;
 
         parent::__construct();
     }
@@ -101,9 +108,9 @@ final class RebootSchedulerCommand extends Command
             sleep(1);
         }
 
-        foreach ($tasks as $rebootTask) {
-            $this->worker->execute($rebootTask);
-        }
+        $this->eventDispatcher->addSubscriber(new StopWorkerOnTaskLimitSubscriber($tasks->count(), $this->logger));
+
+        $this->worker->execute([], ...$tasks);
 
         $io->success('The scheduler have been rebooted, the following tasks have been executed');
 

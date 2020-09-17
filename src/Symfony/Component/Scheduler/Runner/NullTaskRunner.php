@@ -18,7 +18,7 @@ use Symfony\Component\Scheduler\Task\TaskInterface;
 /**
  * @author Guillaume Loulier <contact@guillaumeloulier.fr>
  *
- * @experimental in 5.2
+ * @experimental in 5.3
  */
 final class NullTaskRunner implements RunnerInterface
 {
@@ -27,6 +27,8 @@ final class NullTaskRunner implements RunnerInterface
      */
     public function run(TaskInterface $task): Output
     {
+        $task->setExecutionState(TaskInterface::SUCCEED);
+
         return new Output($task, null);
     }
 

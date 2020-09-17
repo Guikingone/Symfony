@@ -15,11 +15,13 @@ use PHPUnit\Framework\TestCase;
 use Symfony\Component\Console\Application;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Tester\CommandTester;
+use Symfony\Component\EventDispatcher\EventDispatcher;
 use Symfony\Component\Scheduler\Command\RebootSchedulerCommand;
 use Symfony\Component\Scheduler\SchedulerInterface;
 use Symfony\Component\Scheduler\Task\TaskInterface;
 use Symfony\Component\Scheduler\Task\TaskListInterface;
 use Symfony\Component\Scheduler\Worker\WorkerInterface;
+use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
 
 /**
  * @author Guillaume Loulier <contact@guillaumeloulier.fr>
@@ -28,10 +30,11 @@ final class RebootSchedulerCommandTest extends TestCase
 {
     public function testCommandIsConfigured(): void
     {
+        $eventDispatcher = $this->createMock(EventDispatcherInterface::class);
         $scheduler = $this->createMock(SchedulerInterface::class);
         $worker = $this->createMock(WorkerInterface::class);
 
-        $command = new RebootSchedulerCommand($scheduler, $worker);
+        $command = new RebootSchedulerCommand($scheduler, $worker, $eventDispatcher);
 
         static::assertSame('scheduler:reboot', $command->getName());
         static::assertSame('Reboot the scheduler', $command->getDescription());
@@ -42,17 +45,20 @@ final class RebootSchedulerCommandTest extends TestCase
 
     public function testRebootCanSucceedOnHydratedTasksListButWithoutRebootTask(): void
     {
+        $eventDispatcher = $this->createMock(EventDispatcher::class);
+
         $taskList = $this->createMock(TaskListInterface::class);
-        $taskList->expects(self::exactly(2))->method('getIterator')->willReturn(new \ArrayIterator([]));
+        $taskList->expects(self::exactly(3))->method('getIterator')->willReturn(new \ArrayIterator([]));
         $taskList->expects(self::once())->method('filter')->willReturnSelf();
+        $taskList->expects(self::once())->method('count')->willReturn(0);
 
         $scheduler = $this->createMock(SchedulerInterface::class);
         $scheduler->expects(self::once())->method('getTasks')->willReturn($taskList);
 
         $worker = $this->createMock(WorkerInterface::class);
-        $worker->expects(self::never())->method('execute');
+        $worker->expects(self::once())->method('execute')->with([], ...$taskList);
 
-        $command = new RebootSchedulerCommand($scheduler, $worker);
+        $command = new RebootSchedulerCommand($scheduler, $worker, $eventDispatcher);
 
         $application = new Application();
         $application->add($command);
@@ -65,6 +71,9 @@ final class RebootSchedulerCommandTest extends TestCase
 
     public function testRebootCanSucceedOnHydratedTasksListAndWithRebootTask(): void
     {
+        $eventDispatcher = $this->createMock(EventDispatcher::class);
+        $eventDispatcher->expects(self::once())->method('addSubscriber');
+
         $task = $this->createMock(TaskInterface::class);
         $task->expects(self::once())->method('getName')->willReturn('foo');
         $task->expects(self::once())->method('getState')->willReturn(TaskInterface::ENABLED);
@@ -73,6 +82,7 @@ final class RebootSchedulerCommandTest extends TestCase
         $taskList = $this->createMock(TaskListInterface::class);
         $taskList->expects(self::exactly(2))->method('getIterator')->willReturn(new \ArrayIterator([$task]));
         $taskList->expects(self::once())->method('filter')->willReturnSelf();
+        $taskList->expects(self::once())->method('count')->willReturn(1);
 
         $scheduler = $this->createMock(SchedulerInterface::class);
         $scheduler->expects(self::once())->method('getTasks')->willReturn($taskList);
@@ -80,7 +90,7 @@ final class RebootSchedulerCommandTest extends TestCase
         $worker = $this->createMock(WorkerInterface::class);
         $worker->expects(self::once())->method('execute');
 
-        $command = new RebootSchedulerCommand($scheduler, $worker);
+        $command = new RebootSchedulerCommand($scheduler, $worker, $eventDispatcher);
 
         $application = new Application();
         $application->add($command);
@@ -101,6 +111,8 @@ final class RebootSchedulerCommandTest extends TestCase
 
     public function testCommandCanDryRunTheSchedulerReboot(): void
     {
+        $eventDispatcher = $this->createMock(EventDispatcherInterface::class);
+
         $task = $this->createMock(TaskInterface::class);
         $task->expects(self::once())->method('getName')->willReturn('foo');
         $task->expects(self::once())->method('getState')->willReturn(TaskInterface::ENABLED);
@@ -117,7 +129,7 @@ final class RebootSchedulerCommandTest extends TestCase
         $worker->expects(self::never())->method('isRunning');
         $worker->expects(self::never())->method('execute');
 
-        $command = new RebootSchedulerCommand($scheduler, $worker);
+        $command = new RebootSchedulerCommand($scheduler, $worker, $eventDispatcher);
 
         $application = new Application();
         $application->add($command);

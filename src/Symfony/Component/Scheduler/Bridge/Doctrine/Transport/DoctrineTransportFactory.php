@@ -21,7 +21,7 @@ use Symfony\Component\Serializer\SerializerInterface;
 /**
  * @author Guillaume Loulier <contact@guillaumeloulier.fr>
  *
- * @experimental in 5.2
+ * @experimental in 5.3
  */
 final class DoctrineTransportFactory implements TransportFactoryInterface
 {

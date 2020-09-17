@@ -19,20 +19,22 @@ use Symfony\Component\Scheduler\SchedulerInterface;
 use Symfony\Component\Scheduler\Task\TaskInterface;
 use Symfony\Component\Scheduler\Task\TaskListInterface;
 use Symfony\Component\Scheduler\Worker\WorkerInterface;
+use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
 
 /**
  * @author Guillaume Loulier <contact@guillaumeloulier.fr>
  *
- * @experimental in 5.2
+ * @experimental in 5.3
  */
 final class RetryFailedTaskCommandTest extends TestCase
 {
     public function testCommandIsConfigured(): void
     {
+        $eventDispatcher = $this->createMock(EventDispatcherInterface::class);
         $scheduler = $this->createMock(SchedulerInterface::class);
         $worker = $this->createMock(WorkerInterface::class);
 
-        $command = new RetryFailedTaskCommand($scheduler, $worker);
+        $command = new RetryFailedTaskCommand($scheduler, $worker, $eventDispatcher);
 
         static::assertSame('scheduler:retry:failed', $command->getName());
         static::assertSame('Retries one or more tasks from the failed tasks', $command->getDescription());
@@ -46,6 +48,7 @@ final class RetryFailedTaskCommandTest extends TestCase
 
     public function testCommandCannotRetryUndefinedTask(): void
     {
+        $eventDispatcher = $this->createMock(EventDispatcherInterface::class);
         $scheduler = $this->createMock(SchedulerInterface::class);
 
         $taskList = $this->createMock(TaskListInterface::class);
@@ -54,7 +57,7 @@ final class RetryFailedTaskCommandTest extends TestCase
         $worker = $this->createMock(WorkerInterface::class);
         $worker->expects(self::once())->method('getFailedTasks')->willReturn($taskList);
 
-        $command = new RetryFailedTaskCommand($scheduler, $worker);
+        $command = new RetryFailedTaskCommand($scheduler, $worker, $eventDispatcher);
         $tester = new CommandTester($command);
         $tester->execute([
             'name' => 'foo',
@@ -66,6 +69,7 @@ final class RetryFailedTaskCommandTest extends TestCase
 
     public function testCommandCannotRetryTaskWithException(): void
     {
+        $eventDispatcher = $this->createMock(EventDispatcherInterface::class);
         $scheduler = $this->createMock(SchedulerInterface::class);
 
         $task = $this->createMock(TaskInterface::class);
@@ -77,7 +81,7 @@ final class RetryFailedTaskCommandTest extends TestCase
         $worker->expects(self::once())->method('getFailedTasks')->willReturn($taskList);
         $worker->expects(self::once())->method('execute')->willThrowException(new \Exception('Random execution error'));
 
-        $command = new RetryFailedTaskCommand($scheduler, $worker);
+        $command = new RetryFailedTaskCommand($scheduler, $worker, $eventDispatcher);
         $tester = new CommandTester($command);
         $tester->setInputs(['yes']);
         $tester->execute([
@@ -91,6 +95,7 @@ final class RetryFailedTaskCommandTest extends TestCase
 
     public function testCommandCanRetryTaskWithForceOption(): void
     {
+        $eventDispatcher = $this->createMock(EventDispatcherInterface::class);
         $scheduler = $this->createMock(SchedulerInterface::class);
 
         $task = $this->createMock(TaskInterface::class);
@@ -103,7 +108,7 @@ final class RetryFailedTaskCommandTest extends TestCase
         $worker->expects(self::once())->method('getFailedTasks')->willReturn($taskList);
         $worker->expects(self::once())->method('execute');
 
-        $command = new RetryFailedTaskCommand($scheduler, $worker);
+        $command = new RetryFailedTaskCommand($scheduler, $worker, $eventDispatcher);
         $tester = new CommandTester($command);
         $tester->execute([
             'name' => 'foo',
@@ -116,6 +121,7 @@ final class RetryFailedTaskCommandTest extends TestCase
 
     public function testCommandCanRetryTask(): void
     {
+        $eventDispatcher = $this->createMock(EventDispatcherInterface::class);
         $scheduler = $this->createMock(SchedulerInterface::class);
 
         $task = $this->createMock(TaskInterface::class);
@@ -128,7 +134,7 @@ final class RetryFailedTaskCommandTest extends TestCase
         $worker->expects(self::once())->method('getFailedTasks')->willReturn($taskList);
         $worker->expects(self::once())->method('execute');
 
-        $command = new RetryFailedTaskCommand($scheduler, $worker);
+        $command = new RetryFailedTaskCommand($scheduler, $worker, $eventDispatcher);
         $tester = new CommandTester($command);
         $tester->setInputs(['yes']);
         $tester->execute([

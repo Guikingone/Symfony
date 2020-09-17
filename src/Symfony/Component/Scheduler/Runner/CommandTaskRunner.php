@@ -24,7 +24,7 @@ use Symfony\Component\Scheduler\Task\TaskInterface;
 /**
  * @author Guillaume Loulier <contact@guillaumeloulier.fr>
  *
- * @experimental in 5.2
+ * @experimental in 5.3
  */
 final class CommandTaskRunner implements RunnerInterface
 {
@@ -46,6 +46,8 @@ final class CommandTaskRunner implements RunnerInterface
         $this->application->setCatchExceptions(false);
         $this->application->setAutoExit(false);
 
+        $task->setExecutionState(TaskInterface::RUNNING);
+
         try {
             $statusCode = $this->application->run($input, $output);
             if (Command::FAILURE === $statusCode) {
@@ -53,8 +55,12 @@ final class CommandTaskRunner implements RunnerInterface
             }
 
         } catch (\Throwable $throwable) {
+            $task->setExecutionState(TaskInterface::ERRORED);
+
             return new Output($task, $output->fetch(), Output::ERROR);
         }
+
+        $task->setExecutionState(TaskInterface::SUCCEED);
 
         return new Output($task, $output->fetch());
     }

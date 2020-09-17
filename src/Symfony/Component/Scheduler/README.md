@@ -16,3 +16,39 @@ Resources
   * [Report issues](https://github.com/symfony/symfony/issues) and
     [send Pull Requests](https://github.com/symfony/symfony/pulls)
     in the [main Symfony repository](https://github.com/symfony/symfony)
+
+Getting Started
+---------------
+
+```
+$ composer require symfony/scheduler
+```
+
+```php
+<?php
+
+use Symfony\Component\EventDispatcher\EventDispatcher;
+use Symfony\Component\Scheduler\Scheduler;
+use Symfony\Component\Scheduler\Task\ShellTask;
+use Symfony\Component\Scheduler\Task\TaskExecutionTracker;
+use Symfony\Component\Scheduler\Transport\InMemoryTransport;
+use Symfony\Component\Scheduler\Worker\Worker;
+use Symfony\Component\Stopwatch\Stopwatch;
+
+$eventDispatcher = new EventDispatcher();
+
+$transport = new InMemoryTransport();
+$scheduler = new Scheduler(new \DateTimeZone('UTC'), $transport, $eventDispatcher);
+$scheduler->schedule(new ShellTask('app.foo', ['ls', '-al']));
+
+$worker = new Worker($scheduler, [], new TaskExecutionTracker(new Stopwatch()), $eventDispatcher);
+$worker->execute();
+```
+
+Resources
+---------
+
+  * [Contributing](https://symfony.com/doc/current/contributing/index.html)
+  * [Report issues](https://github.com/symfony/symfony/issues) and
+    [send Pull Requests](https://github.com/symfony/symfony/pulls)
+    in the [main Symfony repository](https://github.com/symfony/symfony)

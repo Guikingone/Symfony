@@ -16,18 +16,21 @@ use Symfony\Component\Scheduler\Runner\NullTaskRunner;
 use Symfony\Component\Scheduler\Task\AbstractTask;
 use Symfony\Component\Scheduler\Task\NullTask;
 use Symfony\Component\Scheduler\Task\Output;
+use Symfony\Component\Scheduler\Task\TaskInterface;
 
 /**
  * @author Guillaume Loulier <contact@guillaumeloulier.fr>
  */
 final class NullTaskRunnerTest extends TestCase
 {
-    public function testRunnerCannotSupportWrongTask(): void
+    public function testRunnerSupport(): void
     {
         $task = new BarTask('test');
 
         $runner = new NullTaskRunner();
+
         static::assertFalse($runner->support($task));
+        static::assertTrue($runner->support(new NullTask('foo')));
     }
 
     public function testOutputIsReturned(): void
@@ -39,6 +42,7 @@ final class NullTaskRunnerTest extends TestCase
 
         static::assertInstanceOf(Output::class, $output);
         static::assertNull($output->getOutput());
+        static::assertSame(TaskInterface::SUCCEED, $output->getTask()->getExecutionState());
     }
 }
 

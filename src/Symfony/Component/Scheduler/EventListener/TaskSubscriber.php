@@ -13,18 +13,20 @@ namespace Symfony\Component\Scheduler\EventListener;
 
 use Psr\Log\LoggerInterface;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
+use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Event\RequestEvent;
 use Symfony\Component\HttpKernel\KernelEvents;
 use Symfony\Component\Scheduler\SchedulerInterface;
 use Symfony\Component\Scheduler\Task\TaskInterface;
 use Symfony\Component\Scheduler\Worker\WorkerInterface;
+use Symfony\Component\Serializer\SerializerInterface;
 use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
 
 /**
  * @author Guillaume Loulier <contact@guillaumeloulier.fr>
  *
- * @experimental in 5.2
+ * @experimental in 5.3
  */
 final class TaskSubscriber implements EventSubscriberInterface
 {
@@ -32,16 +34,18 @@ final class TaskSubscriber implements EventSubscriberInterface
     private $tasksPath;
     private $worker;
     private $eventDispatcher;
+    private $serializer;
     private $logger;
 
     /**
      * @param string $tasksPath The path that trigger this listener
      */
-    public function __construct(SchedulerInterface $scheduler, WorkerInterface $worker, EventDispatcherInterface $eventDispatcher, LoggerInterface $logger = null, string $tasksPath = '/_tasks')
+    public function __construct(SchedulerInterface $scheduler, WorkerInterface $worker, EventDispatcherInterface $eventDispatcher, SerializerInterface $serializer, LoggerInterface $logger = null, string $tasksPath = '/_tasks')
     {
         $this->scheduler = $scheduler;
         $this->worker = $worker;
         $this->eventDispatcher = $eventDispatcher;
+        $this->serializer = $serializer;
         $this->logger = $logger;
         $this->tasksPath = $tasksPath;
     }
@@ -74,11 +78,24 @@ final class TaskSubscriber implements EventSubscriberInterface
             });
         }
 
-        $this->eventDispatcher->addSubscriber(new StopWorkerOnTaskLimitSubscriber(\count($tasks, $this->logger)));
+        $this->eventDispatcher->addSubscriber(new StopWorkerOnTaskLimitSubscriber($tasks->count(), $this->logger));
 
-        foreach ($tasks as $task) {
-            $this->worker->execute($task);
+        try {
+            $this->worker->execute([], ...$tasks);
+        } catch (\Throwable $throwable) {
+            $event->setResponse(new JsonResponse([
+                'code' => JsonResponse::HTTP_INTERNAL_SERVER_ERROR,
+                'message' => $throwable->getMessage(),
+                'trace' => $throwable->getTraceAsString(),
+            ], JsonResponse::HTTP_INTERNAL_SERVER_ERROR));
+
+            return;
         }
+
+        $event->setResponse(new JsonResponse([
+            'code' => JsonResponse::HTTP_OK,
+            'tasks' => $this->serializer->serialize($tasks->toArray(), 'json'),
+        ]));
     }
 
     /**

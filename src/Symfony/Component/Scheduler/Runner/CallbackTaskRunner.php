@@ -18,7 +18,7 @@ use Symfony\Component\Scheduler\Task\TaskInterface;
 /**
  * @author Guillaume Loulier <contact@guillaumeloulier.fr>
  *
- * @experimental in 5.2
+ * @experimental in 5.3
  */
 final class CallbackTaskRunner implements RunnerInterface
 {
@@ -27,12 +27,25 @@ final class CallbackTaskRunner implements RunnerInterface
      */
     public function run(TaskInterface $task): Output
     {
-        $output = call_user_func_array($task->getCallback(), $task->getArguments());
+        $task->setExecutionState(TaskInterface::RUNNING);
 
-        return false === $output
-            ? new Output($task, null, Output::ERROR)
-            : new Output($task, trim($output))
-        ;
+        try {
+            $output = call_user_func_array($task->getCallback(), $task->getArguments());
+
+            if (false === $output) {
+                $task->setExecutionState(TaskInterface::ERRORED);
+
+                return new Output($task, null, Output::ERROR);
+            }
+
+            $task->setExecutionState(TaskInterface::SUCCEED);
+
+            return new Output($task, trim($output));
+        } catch (\Throwable $throwable) {
+            $task->setExecutionState(TaskInterface::ERRORED);
+
+            return new Output($task, null, Output::ERROR);
+        }
     }
 
     /**

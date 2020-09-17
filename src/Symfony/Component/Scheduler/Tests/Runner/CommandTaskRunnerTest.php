@@ -21,12 +21,25 @@ use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Scheduler\Exception\UnrecognizedCommandException;
 use Symfony\Component\Scheduler\Runner\CommandTaskRunner;
 use Symfony\Component\Scheduler\Task\CommandTask;
+use Symfony\Component\Scheduler\Task\NullTask;
+use Symfony\Component\Scheduler\Task\Output;
+use Symfony\Component\Scheduler\Task\TaskInterface;
 
 /**
  * @author Guillaume Loulier <contact@guillaumeloulier.fr>
  */
 final class CommandTaskRunnerTest extends TestCase
 {
+    public function testRunnerSupport(): void
+    {
+        $application = new Application();
+
+        $runner = new CommandTaskRunner($application);
+
+        static::assertFalse($runner->support(new NullTask('foo')));
+        static::assertTrue($runner->support(new CommandTask('foo', 'app:foo')));
+    }
+
     public function testCommandCannotBeCalledWithoutBeingRegistered(): void
     {
         $application = new Application();
@@ -36,12 +49,12 @@ final class CommandTaskRunnerTest extends TestCase
         static::assertTrue($runner->support($task));
         static::expectException(UnrecognizedCommandException::class);
         static::expectExceptionMessage('The given command "app:foo" cannot be found!');
-        static::assertNull($runner->run($task));
+        static::assertInstanceOf(Output::class, $runner->run($task)->getOutput());
 
         $task = new CommandTask('foo', FooCommand::class);
         static::expectException(UnrecognizedCommandException::class);
         static::expectExceptionMessage('The given command "app:foo" cannot be found!');
-        static::assertNull($runner->run($task)->getOutput());
+        static::assertInstanceOf(Output::class, $runner->run($task)->getOutput());
     }
 
     public function testCommandCanBeCalledWhenRegistered(): void
@@ -55,6 +68,7 @@ final class CommandTaskRunnerTest extends TestCase
         $output = $runner->run($task);
 
         static::assertSame('This command is executed in "" env', $output->getOutput());
+        static::assertSame(TaskInterface::SUCCEED, $output->getTask()->getExecutionState());
     }
 
     public function testCommandCanBeCalledWithOptions(): void
@@ -68,6 +82,7 @@ final class CommandTaskRunnerTest extends TestCase
         $output = $runner->run($task);
 
         static::assertStringContainsString('This command is executed in "test" env', $output->getOutput());
+        static::assertSame(TaskInterface::SUCCEED, $output->getTask()->getExecutionState());
     }
 
     public function testCommandCanBeCalledWithArgument(): void
@@ -81,6 +96,7 @@ final class CommandTaskRunnerTest extends TestCase
         $output = $runner->run($task);
 
         static::assertStringContainsString('This command has the "bar" name', $output->getOutput());
+        static::assertSame(TaskInterface::SUCCEED, $output->getTask()->getExecutionState());
     }
 }
 

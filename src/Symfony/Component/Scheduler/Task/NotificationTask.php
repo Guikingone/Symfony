@@ -17,7 +17,7 @@ use Symfony\Component\Notifier\Recipient\Recipient;
 /**
  * @author Guillaume Loulier <contact@guillaumeloulier.fr>
  *
- * @experimental in 5.2
+ * @experimental in 5.3
  */
 final class NotificationTask extends AbstractTask
 {

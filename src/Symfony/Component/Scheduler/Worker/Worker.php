@@ -40,12 +40,12 @@ use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
 /**
  * @author Guillaume Loulier <contact@guillaumeloulier.fr>
  *
- * @experimental in 5.2
+ * @experimental in 5.3
  */
 final class Worker implements WorkerInterface
 {
     private const DEFAULT_OPTIONS = [
-        'default_sleep' => 60,
+        'sleep_duration_delay' => 1,
     ];
 
     private $runners;
@@ -77,7 +77,7 @@ final class Worker implements WorkerInterface
     /**
      * {@inheritdoc}
      */
-    public function execute(array $options = []): void
+    public function execute(array $options = [], TaskInterface ...$tasks): void
     {
         if (empty($this->runners)) {
             throw new UndefinedRunnerException('No runner found');
@@ -88,14 +88,11 @@ final class Worker implements WorkerInterface
         $this->dispatch(new WorkerStartedEvent($this));
 
         while (!$this->shouldStop) {
-            $dueTasks = $this->scheduler->getDueTasks();
-            if (empty($dueTasks)) {
-                sleep($this->options['default_sleep']);
+            if (!$tasks) {
+                $tasks = $this->scheduler->getDueTasks();
             }
 
-            $startDate = new \DateTimeImmutable('now', $this->scheduler->getTimezone());
-
-            foreach ($dueTasks as $task) {
+            foreach ($tasks as $task) {
                 if (!$this->checkTaskState($task)) {
                     continue;
                 }
@@ -136,7 +133,7 @@ final class Worker implements WorkerInterface
                 }
             }
 
-            sleep($this->getSleepDuration($startDate, new \DateTimeImmutable('now', $this->scheduler->getTimezone())));
+            sleep($this->getSleepDuration());
         }
 
         $this->dispatch(new WorkerStoppedEvent($this));
@@ -181,7 +178,7 @@ final class Worker implements WorkerInterface
 
     private function checkTaskState(TaskInterface $task): bool
     {
-        if (TaskInterface::UNSPECIFIED === $task->getState()) {
+        if (TaskInterface::UNDEFINED === $task->getState()) {
             throw new \LogicException('The task state must be defined in order to be executed!');
         }
 
@@ -229,12 +226,12 @@ final class Worker implements WorkerInterface
         return $factory->createLock($task->getName());
     }
 
-    private function getSleepDuration(\DatetimeImmutable $startExecutionDate, \DateTimeImmutable $endExecutionDate): int
+    private function getSleepDuration(): int
     {
-        $delay = $startExecutionDate->diff($endExecutionDate);
         $nextExecutionDate = new \DateTimeImmutable('+1 minute', $this->scheduler->getTimezone());
+        $updatedNextExecutionDate = $nextExecutionDate->setTime((int) $nextExecutionDate->format('H'), (int) $nextExecutionDate->format('i'), 0);
 
-        return (new \DateTimeImmutable('now', $this->scheduler->getTimezone()))->diff($nextExecutionDate->sub($delay))->s + 1;
+        return (new \DateTimeImmutable('now', $this->scheduler->getTimezone()))->diff($updatedNextExecutionDate)->s + $this->options['sleep_duration_delay'];
     }
 
     private function dispatch(Event $event): void

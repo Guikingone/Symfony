@@ -24,7 +24,7 @@ use Symfony\Component\Scheduler\Worker\WorkerInterface;
 /**
  * @author Guillaume Loulier <contact@guillaumeloulier.fr>
  *
- * @experimental in 5.2
+ * @experimental in 5.3
  */
 final class RemoveFailedTaskCommand extends Command
 {

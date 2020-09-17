@@ -1863,7 +1863,7 @@ class Configuration implements ConfigurationInterface
                             ->defaultValue('/_tasks')
                         ->end()
                         ->scalarNode('timezone')
-                            ->info('The timezone used by every scheduler (if not override in each one), if not defined, the default value will be "UTC"')
+                            ->info('The timezone used by the scheduler, if not defined, the default value will be "UTC"')
                             ->defaultValue('UTC')
                         ->end()
                         ->scalarNode('transport')

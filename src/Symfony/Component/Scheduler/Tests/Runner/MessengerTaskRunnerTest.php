@@ -16,21 +16,17 @@ use Symfony\Component\Messenger\Envelope;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Scheduler\Runner\MessengerTaskRunner;
 use Symfony\Component\Scheduler\Task\MessengerTask;
+use Symfony\Component\Scheduler\Task\TaskInterface;
 
 /**
  * @author Guillaume Loulier <contact@guillaumeloulier.fr>
  */
 final class MessengerTaskRunnerTest extends TestCase
 {
-    public function testRunnerCannotSupportWrongTask(): void
+    public function testRunnerSupport(): void
     {
         $runner = new MessengerTaskRunner();
         static::assertFalse($runner->support(new BarTask('test')));
-    }
-
-    public function testRunnerCanSupportValidTask(): void
-    {
-        $runner = new MessengerTaskRunner();
         static::assertTrue($runner->support(new MessengerTask('foo', new FooMessage())));
     }
 
@@ -42,6 +38,7 @@ final class MessengerTaskRunnerTest extends TestCase
         $output = $runner->run($task);
         static::assertSame('The task cannot be handled as the bus is not defined', $output->getOutput());
         static::assertSame($task, $output->getTask());
+        static::assertSame(TaskInterface::ERRORED, $output->getTask()->getExecutionState());
     }
 
     public function testRunnerCanReturnOutputWithBusAndException(): void
@@ -56,6 +53,7 @@ final class MessengerTaskRunnerTest extends TestCase
 
         static::assertSame('An error occurred', $output->getOutput());
         static::assertSame($task, $output->getTask());
+        static::assertSame(TaskInterface::ERRORED, $output->getTask()->getExecutionState());
     }
 
     public function testRunnerCanReturnOutputWithBus(): void
@@ -72,6 +70,7 @@ final class MessengerTaskRunnerTest extends TestCase
 
         static::assertNull($output->getOutput());
         static::assertSame($task, $output->getTask());
+        static::assertSame(TaskInterface::SUCCEED, $output->getTask()->getExecutionState());
     }
 }
 

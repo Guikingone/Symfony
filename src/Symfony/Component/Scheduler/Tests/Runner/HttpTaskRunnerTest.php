@@ -17,23 +17,18 @@ use Symfony\Component\HttpClient\Response\MockResponse;
 use Symfony\Component\Scheduler\Runner\HttpTaskRunner;
 use Symfony\Component\Scheduler\Task\HttpTask;
 use Symfony\Component\Scheduler\Task\NullTask;
+use Symfony\Component\Scheduler\Task\TaskInterface;
 
 /**
  * @author Guillaume Loulier <contact@guillaumeloulier.fr>
  */
 final class HttpTaskRunnerTest extends TestCase
 {
-    public function testRunnerCannotSupportWrongTask(): void
+    public function testRunnerSupport(): void
     {
         $runner = new HttpTaskRunner();
 
         static::assertFalse($runner->support(new NullTask('foo')));
-    }
-
-    public function testRunnerCanSupportValidTask(): void
-    {
-        $runner = new HttpTaskRunner();
-
         static::assertTrue($runner->support(new HttpTask('foo', 'https://symfony.com', 'GET')));
     }
 
@@ -50,6 +45,7 @@ final class HttpTaskRunnerTest extends TestCase
         $output = $runner->run(new HttpTask('foo', 'https://symfony.com', 'GET'));
 
         static::assertSame('HTTP 404 returned for "https://symfony.com/".', $output->getOutput());
+        static::assertSame(TaskInterface::ERRORED, $output->getTask()->getExecutionState());
     }
 
     public function testRunnerCanGenerateSuccessOutput(): void
@@ -64,5 +60,6 @@ final class HttpTaskRunnerTest extends TestCase
         $output = $runner->run(new HttpTask('foo', 'https://symfony.com', 'GET'));
 
         static::assertSame('{"body":"test"}', $output->getOutput());
+        static::assertSame(TaskInterface::SUCCEED, $output->getTask()->getExecutionState());
     }
 }

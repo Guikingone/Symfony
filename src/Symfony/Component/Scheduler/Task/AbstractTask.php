@@ -18,7 +18,7 @@ use Symfony\Component\Scheduler\Exception\InvalidArgumentException;
 /**
  * @author Guillaume Loulier <contact@guillaumeloulier.fr>
  *
- * @experimental in 5.2
+ * @experimental in 5.3
  */
 abstract class AbstractTask implements TaskInterface
 {
@@ -57,6 +57,7 @@ abstract class AbstractTask implements TaskInterface
             'scheduled_at' => null,
             'single_run' => false,
             'state' => TaskInterface::ENABLED,
+            'execution_state' => null,
             'tags' => [],
             'timezone' => null,
             'tracked' => true,
@@ -81,6 +82,7 @@ abstract class AbstractTask implements TaskInterface
         $resolver->setAllowedTypes('scheduled_at', [\DateTimeImmutable::class, 'null']);
         $resolver->setAllowedTypes('single_run', ['bool']);
         $resolver->setAllowedTypes('state', ['string']);
+        $resolver->setAllowedTypes('execution_state', ['null', 'string']);
         $resolver->setAllowedTypes('tags', ['string[]']);
         $resolver->setAllowedTypes('tracked', ['bool']);
         $resolver->setAllowedTypes('timezone', [\DateTimeZone::class, 'null']);
@@ -97,6 +99,9 @@ abstract class AbstractTask implements TaskInterface
         $resolver->setAllowedValues('state', function (string $state): bool {
             return $this->validateState($state);
         });
+        $resolver->setAllowedValues('execution_state', function (string $executionState = null): bool {
+            return $this->validateExecutionState($executionState);
+        });
 
         $resolver->setInfo('arrival_time', '[INTERNAL] The time when the task is retrieved in order to execute it');
         $resolver->setInfo('execution_absolute_deadline', '[INTERNAL] An addition of the "execution_start_time" and "execution_relative_deadline" options');
@@ -112,6 +117,7 @@ abstract class AbstractTask implements TaskInterface
         $resolver->setInfo('scheduled_at', 'Define the date where the task has been scheduled');
         $resolver->setInfo('single_run', 'Define if the task must run only once, if so, the task is unscheduled from the scheduler once executed');
         $resolver->setInfo('state', 'Define the state of the task, mainly used by the worker and transports to execute enabled tasks');
+        $resolver->setInfo('execution_state', '[INTERNAL] Define the state of the task during the execution phase, mainly used by the worker');
         $resolver->setInfo('queued', 'Define if the task need to be dispatched to a "symfony/messenger" queue');
         $resolver->setInfo('tags', 'A set of tag that can be used to sort tasks');
         $resolver->setInfo('tracked', 'Define if the task will be tracked during execution, this option enable the "duration" sort');
@@ -336,6 +342,22 @@ abstract class AbstractTask implements TaskInterface
         return $this;
     }
 
+    public function getExecutionState(): ?string
+    {
+        return $this->options['execution_state'];
+    }
+
+    public function setExecutionState(string $executionState = null): TaskInterface
+    {
+        if (!$this->validateExecutionState($executionState)) {
+            throw new InvalidArgumentException('This execution state is not allowed');
+        }
+
+        $this->options['execution_state'] = $executionState;
+
+        return $this;
+    }
+
     public function isOutput(): bool
     {
         return $this->options['output'];
@@ -460,5 +482,10 @@ abstract class AbstractTask implements TaskInterface
     private function validateState(string $state): bool
     {
         return \in_array($state, TaskInterface::ALLOWED_STATES);
+    }
+
+    private function validateExecutionState(string $executionState = null): bool
+    {
+        return null === $executionState ? true : \in_array($executionState, TaskInterface::EXECUTION_STATES);
     }
 }

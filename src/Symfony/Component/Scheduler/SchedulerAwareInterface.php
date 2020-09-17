@@ -14,7 +14,7 @@ namespace Symfony\Component\Scheduler;
 /**
  * @author Guillaume Loulier <contact@guillaumeloulier.fr>
  *
- * @experimental in 5.2
+ * @experimental in 5.3
  */
 interface SchedulerAwareInterface
 {

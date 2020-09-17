@@ -14,19 +14,34 @@ namespace Symfony\Component\Scheduler\Task;
 /**
  * @author Guillaume Loulier <contact@guillaumeloulier.fr>
  *
- * @experimental in 5.2
+ * @experimental in 5.3
  */
 interface TaskInterface
 {
     public const ENABLED = 'enabled';
     public const PAUSED = 'paused';
     public const DISABLED = 'disabled';
-    public const UNSPECIFIED = 'disabled';
+    public const UNDEFINED = 'undefined';
     public const ALLOWED_STATES = [
         self::ENABLED,
         self::PAUSED,
         self::DISABLED,
-        self::UNSPECIFIED,
+        self::UNDEFINED,
+    ];
+
+    public const SUCCEED = 'succeed';
+    public const RUNNING = 'running';
+    public const DONE = 'done';
+    public const INCOMPLETE = 'incomplete';
+    public const ERRORED = 'errored';
+    public const TO_RETRY = 'to_retry';
+    public const EXECUTION_STATES = [
+        self::SUCCEED,
+        self::RUNNING,
+        self::DONE,
+        self::INCOMPLETE,
+        self::ERRORED,
+        self::TO_RETRY,
     ];
 
     public function getName(): string;
@@ -88,6 +103,10 @@ interface TaskInterface
     public function getState(): string;
 
     public function setState(string $state): TaskInterface;
+
+    public function getExecutionState(): ?string;
+
+    public function setExecutionState(string $executionState = null): TaskInterface;
 
     public function isOutput(): bool;
 

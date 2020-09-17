@@ -18,28 +18,24 @@ use Symfony\Component\Notifier\NotifierInterface;
 use Symfony\Component\Notifier\Recipient\Recipient;
 use Symfony\Component\Scheduler\Runner\NotificationTaskRunner;
 use Symfony\Component\Scheduler\Task\NotificationTask;
+use Symfony\Component\Scheduler\Task\TaskInterface;
 
 /**
  * @author Guillaume Loulier <contact@guillaumeloulier.fr>
  */
 final class NotificationTaskRunnerTest extends TestCase
 {
-    public function testRunnerCannotSupportWrongTask(): void
-    {
-        $task = new BarTask('test');
-
-        $runner = new NotificationTaskRunner();
-        static::assertFalse($runner->support($task));
-    }
-
-    public function testRunnerCanSupportValidTask(): void
+    public function testRunnerSupport(): void
     {
         $notification = $this->createMock(Notification::class);
         $recipient = $this->createMock(Recipient::class);
 
-        $task = new NotificationTask('test', $notification, $recipient);
+        $task = new BarTask('test');
 
         $runner = new NotificationTaskRunner();
+        static::assertFalse($runner->support($task));
+
+        $task = new NotificationTask('test', $notification, $recipient);
         static::assertTrue($runner->support($task));
     }
 
@@ -55,6 +51,7 @@ final class NotificationTaskRunnerTest extends TestCase
         $output = $runner->run($task);
         static::assertSame('The task cannot be handled as the notifier is not defined', $output->getOutput());
         static::assertSame($task, $output->getTask());
+        static::assertSame(TaskInterface::ERRORED, $output->getTask()->getExecutionState());
     }
 
     public function testRunnerCanReturnExceptionOutput(): void
@@ -72,6 +69,7 @@ final class NotificationTaskRunnerTest extends TestCase
         $output = $runner->run($task);
         static::assertSame('An error occurred', $output->getOutput());
         static::assertSame($task, $output->getTask());
+        static::assertSame(TaskInterface::ERRORED, $output->getTask()->getExecutionState());
     }
 
     public function testRunnerCanReturnSuccessOutput(): void
@@ -89,5 +87,6 @@ final class NotificationTaskRunnerTest extends TestCase
         $output = $runner->run($task);
         static::assertNull($output->getOutput());
         static::assertSame($task, $output->getTask());
+        static::assertSame(TaskInterface::SUCCEED, $output->getTask()->getExecutionState());
     }
 }

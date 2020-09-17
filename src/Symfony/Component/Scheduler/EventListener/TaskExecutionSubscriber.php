@@ -19,7 +19,7 @@ use Symfony\Component\Scheduler\SchedulerInterface;
 /**
  * @author Guillaume Loulier <contact@guillaumeloulier.fr>
  *
- * @experimental in 5.2
+ * @experimental in 5.3
  */
 final class TaskExecutionSubscriber implements EventSubscriberInterface
 {

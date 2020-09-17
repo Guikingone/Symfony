@@ -18,7 +18,7 @@ use Symfony\Component\Scheduler\Worker\WorkerInterface;
 /**
  * @author Guillaume Loulier <contact@guillaumeloulier.fr>
  *
- * @experimental in 5.2
+ * @experimental in 5.3
  */
 final class TaskMessageHandler implements MessageHandlerInterface
 {
@@ -46,6 +46,6 @@ final class TaskMessageHandler implements MessageHandlerInterface
             is_float($timeout) ? usleep($timeout) : sleep($timeout);
         }
 
-        $this->worker->execute($task);
+        $this->worker->execute([], $task);
     }
 }

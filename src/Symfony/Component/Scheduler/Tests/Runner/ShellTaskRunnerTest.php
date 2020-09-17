@@ -15,6 +15,7 @@ use PHPUnit\Framework\TestCase;
 use Symfony\Component\Scheduler\Runner\ShellTaskRunner;
 use Symfony\Component\Scheduler\Task\AbstractTask;
 use Symfony\Component\Scheduler\Task\ShellTask;
+use Symfony\Component\Scheduler\Task\TaskInterface;
 
 /**
  * @author Guillaume Loulier <contact@guillaumeloulier.fr>
@@ -26,6 +27,8 @@ final class ShellTaskRunnerTest extends TestCase
         $task = new FooTask('test');
 
         $runner = new ShellTaskRunner();
+
+
         static::assertFalse($runner->support($task));
         static::assertTrue($runner->support(new ShellTask('test', ['echo', 'Symfony'])));
     }
@@ -39,6 +42,7 @@ final class ShellTaskRunnerTest extends TestCase
         $runner = new ShellTaskRunner();
         static::assertTrue($runner->support($task));
         static::assertNull($runner->run($task)->getOutput());
+        static::assertSame(TaskInterface::SUCCEED, $runner->run($task)->getTask()->getExecutionState());
     }
 
     public function testRunnerCanSupportValidTaskWithOutput(): void
@@ -50,6 +54,7 @@ final class ShellTaskRunnerTest extends TestCase
         $runner = new ShellTaskRunner();
         static::assertTrue($runner->support($task));
         static::assertSame('Symfony', $runner->run($task)->getOutput());
+        static::assertSame(TaskInterface::SUCCEED, $runner->run($task)->getTask()->getExecutionState());
     }
 
     public function testRunnerCanReturnEmptyOutputOnBackgroundTask(): void
@@ -62,6 +67,7 @@ final class ShellTaskRunnerTest extends TestCase
         $runner = new ShellTaskRunner();
         static::assertTrue($runner->support($task));
         static::assertSame('Task is running in background, output is not available', $runner->run($task)->getOutput());
+        static::assertSame(TaskInterface::INCOMPLETE, $runner->run($task)->getTask()->getExecutionState());
     }
 }
 

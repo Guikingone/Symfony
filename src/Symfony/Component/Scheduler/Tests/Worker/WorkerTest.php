@@ -55,7 +55,7 @@ final class WorkerTest extends TestCase
         $task->expects(self::once())->method('getName')->willReturn('foo');
 
         $scheduler = $this->createMock(SchedulerInterface::class);
-        $scheduler->expects(self::exactly(1))->method('getTimezone')->willReturn(new \DateTimeZone('UTC'));
+        $scheduler->expects(self::never())->method('getTimezone');
         $scheduler->expects(self::once())->method('getDueTasks')->willReturn(new TaskList([$task]));
 
         $runner = $this->createMock(RunnerInterface::class);
@@ -111,7 +111,7 @@ final class WorkerTest extends TestCase
         $runner->expects(self::once())->method('run')->with($task)->willReturn(new Output($task, null));
 
         $scheduler = $this->createMock(SchedulerInterface::class);
-        $scheduler->expects(self::exactly(1))->method('getTimezone')->willReturn(new \DateTimeZone('UTC'));
+        $scheduler->expects(self::never())->method('getTimezone');
         $scheduler->expects(self::once())->method('getDueTasks')->willReturn(new TaskList([$task]));
 
         $eventDispatcher = new EventDispatcher();
@@ -140,7 +140,7 @@ final class WorkerTest extends TestCase
         $secondRunner->expects(self::never())->method('run')->willReturn(new Output($task, null));
 
         $scheduler = $this->createMock(SchedulerInterface::class);
-        $scheduler->expects(self::exactly(1))->method('getTimezone')->willReturn(new \DateTimeZone('UTC'));
+        $scheduler->expects(self::never())->method('getTimezone');
         $scheduler->expects(self::once())->method('getDueTasks')->willReturn(new TaskList([$task]));
 
         $eventDispatcher = new EventDispatcher();
@@ -166,7 +166,7 @@ final class WorkerTest extends TestCase
         $task->method('getName')->willReturn('failed');
 
         $scheduler = $this->createMock(SchedulerInterface::class);
-        $scheduler->expects(self::exactly(1))->method('getTimezone')->willReturn(new \DateTimeZone('UTC'));
+        $scheduler->expects(self::never())->method('getTimezone');
         $scheduler->expects(self::once())->method('getDueTasks')->willReturn(new TaskList([$task]));
 
         $eventDispatcher = new EventDispatcher();

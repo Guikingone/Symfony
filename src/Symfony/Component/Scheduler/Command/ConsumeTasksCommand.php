@@ -29,7 +29,7 @@ use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
 /**
  * @author Guillaume Loulier <contact@guillaumeloulier.fr>
  *
- * @experimental in 5.2
+ * @experimental in 5.3
  */
 final class ConsumeTasksCommand extends Command
 {
@@ -91,7 +91,7 @@ EOF
         $io = new SymfonyStyle($input, $output);
 
         $tasks = $this->scheduler->getDueTasks();
-        if (0 === \count($tasks)) {
+        if (0 === $tasks->count()) {
             $io->warning('No due tasks found');
 
             return self::SUCCESS;
@@ -120,13 +120,12 @@ EOF
             $io->comment(sprintf('The worker will automatically exit once %s.', $stopsWhen));
         }
 
-        $tasksCount = \count($tasks);
+        $tasksCount = $tasks->count();
 
-        $io->note(sprintf('Found %d task%s', $tasksCount, $tasksCount > 1 ? 's' : ''));
         $io->comment('Quit the worker with CONTROL-C.');
 
         if (OutputInterface::VERBOSITY_VERBOSE > $output->getVerbosity()) {
-            $io->comment(sprintf('The task%s output can be displayed if the -vv option is used', $tasksCount > 1 ? 's' : ''));
+            $io->note(sprintf('The task%s output can be displayed if the -vv option is used', $tasksCount > 1 ? 's' : ''));
         }
 
         if ($output->isVeryVerbose()) {
@@ -135,7 +134,7 @@ EOF
                     return;
                 }
 
-                $io->note('Task output:');
+                $io->note(sprintf('Output for task %s:', $event->getTask()->getName()));
                 $io->writeln($event->getOutput()->getOutput());
             });
         }
@@ -150,8 +149,6 @@ EOF
 
             return self::FAILURE;
         }
-
-        $io->success(sprintf('%d task%s %s been consumed', $tasksCount, $tasksCount > 1 ? 's' : '', $tasksCount > 1 ? 'have' : 'has'));
 
         return self::SUCCESS;
     }

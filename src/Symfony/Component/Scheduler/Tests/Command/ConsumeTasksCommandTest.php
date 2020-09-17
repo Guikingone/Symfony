@@ -89,7 +89,7 @@ final class ConsumeTasksCommandTest extends TestCase
 
         $taskList = $this->createMock(TaskListInterface::class);
         $taskList->expects(self::exactly(2))->method('count')->willReturn(1);
-        $taskList->expects(self::once())->method('getIterator')->willReturn(new \ArrayIterator([$task]));
+        //$taskList->expects(self::once())->method('getIterator')->willReturn(new \ArrayIterator([$task]));
 
         $scheduler = $this->createMock(SchedulerInterface::class);
         $scheduler->expects(self::once())->method('getDueTasks')->willReturn($taskList);
@@ -105,10 +105,8 @@ final class ConsumeTasksCommandTest extends TestCase
         $tester->execute([]);
 
         static::assertSame(Command::SUCCESS, $tester->getStatusCode());
-        static::assertStringContainsString('Found 1 task', $tester->getDisplay());
         static::assertStringContainsString('Quit the worker with CONTROL-C.', $tester->getDisplay());
         static::assertStringContainsString('The task output can be displayed if the -vv option is used', $tester->getDisplay());
-        static::assertStringContainsString('1 task has been consumed', $tester->getDisplay());
     }
 
     public function testCommandCannotConsumeTasksWithError(): void
@@ -121,7 +119,6 @@ final class ConsumeTasksCommandTest extends TestCase
 
         $taskList = $this->createMock(TaskListInterface::class);
         $taskList->expects(self::exactly(2))->method('count')->willReturn(1);
-        $taskList->expects(self::once())->method('getIterator')->willReturn(new \ArrayIterator([$task]));
 
         $scheduler = $this->createMock(SchedulerInterface::class);
         $scheduler->expects(self::once())->method('getDueTasks')->willReturn($taskList);
@@ -154,7 +151,6 @@ final class ConsumeTasksCommandTest extends TestCase
 
         $taskList = $this->createMock(TaskListInterface::class);
         $taskList->expects(self::exactly(2))->method('count')->willReturn(1);
-        $taskList->expects(self::once())->method('getIterator')->willReturn(new \ArrayIterator([$task]));
 
         $scheduler = $this->createMock(SchedulerInterface::class);
         $scheduler->expects(self::once())->method('getDueTasks')->willReturn($taskList);
@@ -173,10 +169,8 @@ final class ConsumeTasksCommandTest extends TestCase
 
         static::assertSame(Command::SUCCESS, $tester->getStatusCode());
         static::assertStringContainsString('The worker will automatically exit once 10 tasks has been consumed', $tester->getDisplay());
-        static::assertStringContainsString('The task output can be displayed if the -vv option is used', $tester->getDisplay());
-        static::assertStringContainsString('[NOTE] Found 1 task', $tester->getDisplay());
+        static::assertStringContainsString('[NOTE] The task output can be displayed if the -vv option is used', $tester->getDisplay());
         static::assertStringContainsString('Quit the worker with CONTROL-C.', $tester->getDisplay());
-        static::assertStringContainsString('[OK] 1 task has been consumed', $tester->getDisplay());
     }
 
     public function testCommandCanConsumeSchedulersWithTimeLimit(): void
@@ -191,7 +185,6 @@ final class ConsumeTasksCommandTest extends TestCase
 
         $taskList = $this->createMock(TaskListInterface::class);
         $taskList->expects(self::exactly(2))->method('count')->willReturn(1);
-        $taskList->expects(self::once())->method('getIterator')->willReturn(new \ArrayIterator([$task]));
 
         $scheduler = $this->createMock(SchedulerInterface::class);
         $scheduler->expects(self::once())->method('getDueTasks')->willReturn($taskList);
@@ -210,10 +203,8 @@ final class ConsumeTasksCommandTest extends TestCase
 
         static::assertSame(Command::SUCCESS, $tester->getStatusCode());
         static::assertStringContainsString('The worker will automatically exit once it has been running for 10 seconds', $tester->getDisplay());
-        static::assertStringContainsString('The task output can be displayed if the -vv option is used', $tester->getDisplay());
-        static::assertStringContainsString('[NOTE] Found 1 task', $tester->getDisplay());
+        static::assertStringContainsString('[NOTE] The task output can be displayed if the -vv option is used', $tester->getDisplay());
         static::assertStringContainsString('Quit the worker with CONTROL-C.', $tester->getDisplay());
-        static::assertStringContainsString('[OK] 1 task has been consumed', $tester->getDisplay());
     }
 
     public function testCommandCanConsumeSchedulersWithFailureLimit(): void
@@ -228,7 +219,6 @@ final class ConsumeTasksCommandTest extends TestCase
 
         $taskList = $this->createMock(TaskListInterface::class);
         $taskList->expects(self::exactly(2))->method('count')->willReturn(1);
-        $taskList->expects(self::once())->method('getIterator')->willReturn(new \ArrayIterator([$task]));
 
         $scheduler = $this->createMock(SchedulerInterface::class);
         $scheduler->expects(self::once())->method('getDueTasks')->willReturn($taskList);
@@ -247,10 +237,8 @@ final class ConsumeTasksCommandTest extends TestCase
 
         static::assertSame(Command::SUCCESS, $tester->getStatusCode());
         static::assertStringContainsString('The worker will automatically exit once 10 tasks have failed', $tester->getDisplay());
-        static::assertStringContainsString('The task output can be displayed if the -vv option is used', $tester->getDisplay());
-        static::assertStringContainsString('[NOTE] Found 1 task', $tester->getDisplay());
+        static::assertStringContainsString('[NOTE] The task output can be displayed if the -vv option is used', $tester->getDisplay());
         static::assertStringContainsString('Quit the worker with CONTROL-C.', $tester->getDisplay());
-        static::assertStringContainsString('[OK] 1 task has been consumed', $tester->getDisplay());
     }
 
     public function testCommandCanDisplayTaskOutput(): void
@@ -258,14 +246,14 @@ final class ConsumeTasksCommandTest extends TestCase
         $eventDispatcher = new EventDispatcher();
 
         $task = $this->createMock(TaskInterface::class);
-        $task->expects(self::once())->method('getName');
+        $task->expects(self::exactly(2))->method('getName')->willReturn('foo');
 
         $taskList = $this->createMock(TaskListInterface::class);
         $taskList->expects(self::exactly(2))->method('count')->willReturn(1);
         $taskList->expects(self::once())->method('getIterator')->willReturn(new \ArrayIterator([$task]));
 
         $scheduler = $this->createMock(SchedulerInterface::class);
-        $scheduler->expects(self::once())->method('getDueTasks')->willReturn($taskList);
+        $scheduler->expects(self::exactly(2))->method('getDueTasks')->willReturn($taskList);
 
         $tracker = $this->createMock(TaskExecutionTrackerInterface::class);
 
@@ -273,7 +261,7 @@ final class ConsumeTasksCommandTest extends TestCase
         $runner->expects(self::once())->method('support')->willReturn(true);
         $runner->expects(self::once())->method('run')->with($task)->willReturn(new Output($task, 'Success output'));
 
-        $worker = new Worker([$runner], $tracker, $eventDispatcher);
+        $worker = new Worker($scheduler, [$runner], $tracker, $eventDispatcher);
 
         $command = new ConsumeTasksCommand($scheduler, $worker, $eventDispatcher);
 
@@ -286,7 +274,7 @@ final class ConsumeTasksCommandTest extends TestCase
 
         static::assertSame(Command::SUCCESS, $tester->getStatusCode());
         static::assertStringContainsString('The worker will automatically exit once 1 tasks has been consumed.', $tester->getDisplay());
-        static::assertStringContainsString('Task output:', $tester->getDisplay());
+        static::assertStringContainsString('Output for task foo:', $tester->getDisplay());
         static::assertStringContainsString('Success output', $tester->getDisplay());
     }
 }

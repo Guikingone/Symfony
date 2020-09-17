@@ -48,7 +48,7 @@ use Symfony\Component\HttpClient\ScopingHttpClient;
 use Symfony\Component\HttpKernel\DependencyInjection\LoggerPass;
 use Symfony\Component\Messenger\Transport\TransportFactory;
 use Symfony\Component\PropertyAccess\PropertyAccessor;
-use Symfony\Component\Scheduler\ExecutionModeOrchestratorInterface;
+use Symfony\Component\Scheduler\SchedulePolicy\SchedulePolicyOrchestratorInterface;
 use Symfony\Component\Scheduler\SchedulerInterface;
 use Symfony\Component\Scheduler\Task\TaskExecutionTrackerInterface;
 use Symfony\Component\Scheduler\Worker\WorkerInterface;
@@ -774,7 +774,7 @@ abstract class FrameworkExtensionTest extends TestCase
     public function testMessengerMiddlewareFactoryErroneousFormat()
     {
         $this->expectException('InvalidArgumentException');
-        $this->expectExceptionMessage('Invalid middleware at path "framework.messenger": a map with a single factory id as key and its arguments as value was expected, "{"foo":["qux"],"bar":["baz"]}" given.');
+        $this->expectExceptionMessage('Invalid middleware at path "framework.messenger": a map with a single factory id as key and its arguments as value was expected, {"foo":["qux"],"bar":["baz"]} given.');
         $this->createContainerFromFile('messenger_middleware_factory_erroneous_format');
     }
 
@@ -1652,6 +1652,9 @@ abstract class FrameworkExtensionTest extends TestCase
 
         static::assertTrue($container->has('scheduler.command.reboot'));
         static::assertInstanceOf(Reference::class, $container->getDefinition('scheduler.command.reboot')->getArgument(0));
+        static::assertInstanceOf(Reference::class, $container->getDefinition('scheduler.command.reboot')->getArgument(1));
+        static::assertInstanceOf(Reference::class, $container->getDefinition('scheduler.command.reboot')->getArgument(2));
+        static::assertInstanceOf(Reference::class, $container->getDefinition('scheduler.command.reboot')->getArgument(3));
         static::assertTrue($container->getDefinition('scheduler.command.reboot')->hasTag('console.command'));
 
         static::assertTrue($container->has('scheduler.command.remove_failed'));
@@ -1660,13 +1663,17 @@ abstract class FrameworkExtensionTest extends TestCase
 
         static::assertTrue($container->has('scheduler.command.retry_failed'));
         static::assertInstanceOf(Reference::class, $container->getDefinition('scheduler.command.retry_failed')->getArgument(0));
+        static::assertInstanceOf(Reference::class, $container->getDefinition('scheduler.command.retry_failed')->getArgument(1));
+        static::assertInstanceOf(Reference::class, $container->getDefinition('scheduler.command.retry_failed')->getArgument(2));
+        static::assertInstanceOf(Reference::class, $container->getDefinition('scheduler.command.retry_failed')->getArgument(3));
         static::assertTrue($container->getDefinition('scheduler.command.retry_failed')->hasTag('console.command'));
 
         static::assertTrue($container->has('scheduler.worker'));
-        static::assertInstanceOf(TaggedIteratorArgument::class, $container->getDefinition('scheduler.worker')->getArgument(0));
-        static::assertInstanceOf(Reference::class, $container->getDefinition('scheduler.worker')->getArgument(1));
+        static::assertInstanceOf(Reference::class, $container->getDefinition('scheduler.worker')->getArgument(0));
+        static::assertInstanceOf(TaggedIteratorArgument::class, $container->getDefinition('scheduler.worker')->getArgument(1));
         static::assertInstanceOf(Reference::class, $container->getDefinition('scheduler.worker')->getArgument(2));
         static::assertInstanceOf(Reference::class, $container->getDefinition('scheduler.worker')->getArgument(3));
+        static::assertInstanceOf(Reference::class, $container->getDefinition('scheduler.worker')->getArgument(4));
         static::assertTrue($container->getDefinition('scheduler.worker')->hasTag('monolog.logger'));
         static::assertArrayHasKey('channel', $container->getDefinition('scheduler.worker')->getTag('monolog.logger')[0]);
         static::assertSame('scheduler', $container->getDefinition('scheduler.worker')->getTag('monolog.logger')[0]['channel']);
@@ -1692,8 +1699,23 @@ abstract class FrameworkExtensionTest extends TestCase
         static::assertTrue($container->getDefinition('scheduler.transport_factory.redis')->hasTag('scheduler.transport_factory'));
 
         static::assertTrue($container->has('scheduler.expression_factory'));
-        static::assertTrue($container->has('scheduler.execution_mode_orchestrator'));
-        static::assertTrue($container->hasAlias(ExecutionModeOrchestratorInterface::class));
+        static::assertTrue($container->has('scheduler.schedule_policy_orchestrator'));
+        static::assertInstanceOf(TaggedIteratorArgument::class, $container->getDefinition('scheduler.schedule_policy_orchestrator')->getArgument(0));
+        static::assertTrue($container->hasAlias(SchedulePolicyOrchestratorInterface::class));
+        static::assertTrue($container->has('scheduler.batch_policy'));
+        static::assertTrue($container->getDefinition('scheduler.batch_policy')->hasTag('scheduler.schedule_policy'));
+        static::assertTrue($container->has('scheduler.deadline_policy'));
+        static::assertTrue($container->getDefinition('scheduler.deadline_policy')->hasTag('scheduler.schedule_policy'));
+        static::assertTrue($container->has('scheduler.execution_duration_policy'));
+        static::assertTrue($container->getDefinition('scheduler.execution_duration_policy')->hasTag('scheduler.schedule_policy'));
+        static::assertTrue($container->has('scheduler.first_in_first_ou_policy'));
+        static::assertTrue($container->getDefinition('scheduler.first_in_first_ou_policy')->hasTag('scheduler.schedule_policy'));
+        static::assertTrue($container->has('scheduler.idle_policy'));
+        static::assertTrue($container->getDefinition('scheduler.idle_policy')->hasTag('scheduler.schedule_policy'));
+        static::assertTrue($container->has('scheduler.nice_policy'));
+        static::assertTrue($container->getDefinition('scheduler.nice_policy')->hasTag('scheduler.schedule_policy'));
+        static::assertTrue($container->has('scheduler.round_robin_policy'));
+        static::assertTrue($container->getDefinition('scheduler.round_robin_policy')->hasTag('scheduler.schedule_policy'));
 
         static::assertTrue($container->has('scheduler.shell_runner'));
         static::assertTrue($container->getDefinition('scheduler.shell_runner')->hasTag('scheduler.runner'));
@@ -1734,6 +1756,7 @@ abstract class FrameworkExtensionTest extends TestCase
         static::assertInstanceOf(Reference::class, $container->getDefinition('scheduler.task_subscriber')->getArgument(1));
         static::assertInstanceOf(Reference::class, $container->getDefinition('scheduler.task_subscriber')->getArgument(2));
         static::assertInstanceOf(Reference::class, $container->getDefinition('scheduler.task_subscriber')->getArgument(3));
+        static::assertInstanceOf(Reference::class, $container->getDefinition('scheduler.task_subscriber')->getArgument(4));
         static::assertTrue($container->getDefinition('scheduler.task_subscriber')->hasTag('kernel.event_subscriber'));
 
         static::assertTrue($container->hasDefinition('scheduler.task_execution.subscriber'));

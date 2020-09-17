@@ -20,7 +20,7 @@ use Symfony\Component\Scheduler\Event\WorkerStoppedEvent;
 /**
  * @author Guillaume Loulier <contact@guillaumeloulier.fr>
  *
- * @experimental in 5.2
+ * @experimental in 5.3
  */
 final class StopWorkerOnTimeLimitSubscriber implements EventSubscriberInterface
 {

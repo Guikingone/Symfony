@@ -19,12 +19,13 @@ use Symfony\Component\Scheduler\Event\WorkerStoppedEvent;
 use Symfony\Component\Scheduler\Exception\UndefinedRunnerException;
 use Symfony\Component\Scheduler\Task\FailedTask;
 use Symfony\Component\Scheduler\Task\Output;
+use Symfony\Component\Scheduler\Task\TaskInterface;
 use Symfony\Component\Scheduler\Task\TaskListInterface;
 
 /**
  * @author Guillaume Loulier <contact@guillaumeloulier.fr>
  *
- * @experimental in 5.2
+ * @experimental in 5.3
  */
 interface WorkerInterface
 {
@@ -43,7 +44,7 @@ interface WorkerInterface
      *
      * @throws UndefinedRunnerException If no runner capable of running the tasks is found.
      */
-    public function execute(array $options = []): void;
+    public function execute(array $options = [], TaskInterface ...$tasks): void;
 
     public function stop(): void;
 
