@@ -11,6 +11,7 @@
 
 namespace Symfony\Component\Scheduler\Transport;
 
+use Symfony\Component\Scheduler\SchedulePolicy\SchedulePolicyOrchestratorInterface;
 use Symfony\Component\Serializer\SerializerInterface;
 
 /**
@@ -23,11 +24,11 @@ final class InMemoryTransportFactory implements TransportFactoryInterface
     /**
      * {@inheritdoc}
      */
-    public function createTransport(Dsn $dsn, array $options, SerializerInterface $serializer): TransportInterface
+    public function createTransport(Dsn $dsn, array $options, SerializerInterface $serializer, SchedulePolicyOrchestratorInterface $schedulePolicyOrchestrator): TransportInterface
     {
         return new InMemoryTransport(array_merge([
             'execution_mode' => $dsn->getHost(),
-        ], $dsn->getOptions(), $options));
+        ], $dsn->getOptions(), $options), $schedulePolicyOrchestrator);
     }
 
     /**

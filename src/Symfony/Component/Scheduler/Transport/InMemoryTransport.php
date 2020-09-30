@@ -11,8 +11,9 @@
 
 namespace Symfony\Component\Scheduler\Transport;
 
-use Symfony\Component\Scheduler\Exception\AlreadyScheduledTaskException;
-use Symfony\Component\Scheduler\ExecutionModeOrchestrator;
+use Symfony\Component\Scheduler\Exception\InvalidArgumentException;
+use Symfony\Component\Scheduler\Exception\LogicException;
+use Symfony\Component\Scheduler\SchedulePolicy\SchedulePolicyOrchestratorInterface;
 use Symfony\Component\Scheduler\Task\TaskInterface;
 use Symfony\Component\Scheduler\Task\TaskList;
 use Symfony\Component\Scheduler\Task\TaskListInterface;
@@ -32,26 +33,35 @@ final class InMemoryTransport implements TransportInterface
     private $tasks = [];
     private $orchestrator;
 
-    public function __construct(array $options = [])
+    public function __construct(array $options = [], SchedulePolicyOrchestratorInterface $schedulePolicyOrchestrator = null)
     {
-        $this->options = $options;
-        $this->orchestrator = new ExecutionModeOrchestrator($options['execution_mode'] ?? self::DEFAULT_OPTIONS['execution_mode']);
+        $this->options = array_replace_recursive(self::DEFAULT_OPTIONS, $options);
+        $this->orchestrator = $schedulePolicyOrchestrator;
     }
 
+    /**
+     * {@inheritdoc}
+     */
     public function get(string $taskName): TaskInterface
     {
         return $this->list()->get($taskName);
     }
 
+    /**
+     * {@inheritdoc}
+     */
     public function list(): TaskListInterface
     {
         return new TaskList($this->tasks);
     }
 
+    /**
+     * {@inheritdoc}
+     */
     public function create(TaskInterface $task): void
     {
-        if (isset($this->tasks[$task->getName()])) {
-            throw new AlreadyScheduledTaskException(sprintf('The following task "%s" has already been scheduled!', $task->getName()));
+        if (\array_key_exists($task->getName(), $this->tasks)) {
+            return;
         }
 
         if (isset($this->options['nice'])) {
@@ -59,30 +69,46 @@ final class InMemoryTransport implements TransportInterface
         }
 
         $this->tasks[$task->getName()] = $task;
-        $this->tasks = $this->orchestrator->sort($this->tasks);
+        $this->tasks = null !== $this->orchestrator ? $this->orchestrator->sort($this->options['execution_mode'], $this->tasks) : $this->tasks;
     }
 
+    /**
+     * {@inheritdoc}
+     */
     public function update(string $taskName, TaskInterface $updatedTask): void
     {
         $this->list()->offsetSet($taskName, $updatedTask);
     }
 
+    /**
+     * {@inheritdoc}
+     */
     public function delete(string $taskName): void
     {
         unset($this->tasks[$taskName]);
     }
 
+    /**
+     * {@inheritdoc}
+     */
     public function pause(string $taskName): void
     {
         $task = $this->list()->get($taskName);
-        if (!$task instanceof TaskInterface || TaskInterface::PAUSED === $task->getState()) {
-            return;
+        if (!$task instanceof TaskInterface) {
+            throw new InvalidArgumentException(sprintf('The task "%s" does not exist', $taskName));
+        }
+
+        if (TaskInterface::PAUSED === $task->getState()) {
+            throw new LogicException(sprintf('The task "%s" is already paused', $task->getName()));
         }
 
         $task->setState(TaskInterface::PAUSED);
         $this->update($taskName, $task);
     }
 
+    /**
+     * {@inheritdoc}
+     */
     public function resume(string $taskName): void
     {
         $task = $this->list()->get($taskName);
@@ -94,6 +120,9 @@ final class InMemoryTransport implements TransportInterface
         $this->update($taskName, $task);
     }
 
+    /**
+     * {@inheritdoc}
+     */
     public function clear(): void
     {
         $this->tasks = [];

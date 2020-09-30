@@ -11,6 +11,7 @@
 
 namespace Symfony\Component\Scheduler\Transport;
 
+use Symfony\Component\Scheduler\SchedulePolicy\SchedulePolicyOrchestratorInterface;
 use Symfony\Component\Serializer\SerializerInterface;
 
 /**
@@ -23,14 +24,14 @@ final class FilesystemTransportFactory implements TransportFactoryInterface
     /**
      * {@inheritdoc}
      */
-    public function createTransport(Dsn $dsn, array $options, SerializerInterface $serializer): TransportInterface
+    public function createTransport(Dsn $dsn, array $options, SerializerInterface $serializer, SchedulePolicyOrchestratorInterface $schedulePolicyOrchestrator): TransportInterface
     {
         $finalOptions = [
             'execution_mode' => $dsn->getHost(),
             'path' => $dsn->getOption('path'),
         ];
 
-        return new FilesystemTransport($finalOptions['path'], array_merge($finalOptions, $options), $serializer);
+        return new FilesystemTransport($finalOptions['path'], array_merge($finalOptions, $options), $serializer, $schedulePolicyOrchestrator);
     }
 
     /**

@@ -12,6 +12,7 @@
 namespace Symfony\Component\Scheduler\Tests\Transport;
 
 use PHPUnit\Framework\TestCase;
+use Symfony\Component\Scheduler\SchedulePolicy\SchedulePolicyOrchestratorInterface;
 use Symfony\Component\Scheduler\Transport\Dsn;
 use Symfony\Component\Scheduler\Transport\InMemoryTransport;
 use Symfony\Component\Scheduler\Transport\InMemoryTransportFactory;
@@ -35,10 +36,14 @@ final class InMemoryTransportFactoryTest extends TestCase
      */
     public function testFactoryReturnTransport(string $dsn): void
     {
+        $schedulePolicyOrchestrator = $this->createMock(SchedulePolicyOrchestratorInterface::class);
         $serializer = $this->createMock(SerializerInterface::class);
-        $factory = new InMemoryTransportFactory();
 
-        static::assertInstanceOf(InMemoryTransport::class, $factory->createTransport(Dsn::fromString($dsn), [], $serializer));
+        $factory = new InMemoryTransportFactory();
+        $transport = $factory->createTransport(Dsn::fromString($dsn), [], $serializer, $schedulePolicyOrchestrator);
+
+        static::assertInstanceOf(InMemoryTransport::class, $transport);
+        static::assertArrayHasKey('execution_mode', $transport->getOptions());
     }
 
     public function provideDsn(): \Generator

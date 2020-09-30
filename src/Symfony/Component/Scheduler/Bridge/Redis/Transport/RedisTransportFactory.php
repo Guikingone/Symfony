@@ -12,6 +12,7 @@
 namespace Symfony\Component\Scheduler\Bridge\Redis\Transport;
 
 use Symfony\Component\Scheduler\Exception\LogicException;
+use Symfony\Component\Scheduler\SchedulePolicy\SchedulePolicyOrchestratorInterface;
 use Symfony\Component\Scheduler\Transport\Dsn;
 use Symfony\Component\Scheduler\Transport\TransportFactoryInterface;
 use Symfony\Component\Scheduler\Transport\TransportInterface;
@@ -27,7 +28,7 @@ final class RedisTransportFactory implements TransportFactoryInterface
     /**
      * {@inheritdoc}
      */
-    public function createTransport(Dsn $dsn, array $options, SerializerInterface $serializer): TransportInterface
+    public function createTransport(Dsn $dsn, array $options, SerializerInterface $serializer, SchedulePolicyOrchestratorInterface $schedulePolicyOrchestrator): TransportInterface
     {
         if (!class_exists(\Redis::class)) {
             throw new LogicException('The Redis extension must be installed.');

@@ -1628,7 +1628,7 @@ abstract class FrameworkExtensionTest extends TestCase
         $container = $this->createContainerFromFile('scheduler_default_options');
 
         static::assertTrue($container->hasParameter('scheduler.timezone'));
-        static::assertInstanceOf(\DateTimeZone::class, $container->getParameter('scheduler.timezone'));
+        static::assertSame('UTC', $container->getParameter('scheduler.timezone'));
         static::assertTrue($container->hasParameter('scheduler.trigger_path'));
         static::assertSame('/_tasks', $container->getParameter('scheduler.trigger_path'));;
 
@@ -1708,10 +1708,14 @@ abstract class FrameworkExtensionTest extends TestCase
         static::assertTrue($container->getDefinition('scheduler.deadline_policy')->hasTag('scheduler.schedule_policy'));
         static::assertTrue($container->has('scheduler.execution_duration_policy'));
         static::assertTrue($container->getDefinition('scheduler.execution_duration_policy')->hasTag('scheduler.schedule_policy'));
-        static::assertTrue($container->has('scheduler.first_in_first_ou_policy'));
-        static::assertTrue($container->getDefinition('scheduler.first_in_first_ou_policy')->hasTag('scheduler.schedule_policy'));
+        static::assertTrue($container->has('scheduler.first_in_first_out_policy'));
+        static::assertTrue($container->getDefinition('scheduler.first_in_first_out_policy')->hasTag('scheduler.schedule_policy'));
+        static::assertTrue($container->has('scheduler.first_in_last_out_policy'));
+        static::assertTrue($container->getDefinition('scheduler.first_in_last_out_policy')->hasTag('scheduler.schedule_policy'));
         static::assertTrue($container->has('scheduler.idle_policy'));
         static::assertTrue($container->getDefinition('scheduler.idle_policy')->hasTag('scheduler.schedule_policy'));
+        static::assertTrue($container->has('scheduler.memory_policy'));
+        static::assertTrue($container->getDefinition('scheduler.memory_policy')->hasTag('scheduler.schedule_policy'));
         static::assertTrue($container->has('scheduler.nice_policy'));
         static::assertTrue($container->getDefinition('scheduler.nice_policy')->hasTag('scheduler.schedule_policy'));
         static::assertTrue($container->has('scheduler.round_robin_policy'));
@@ -1766,8 +1770,8 @@ abstract class FrameworkExtensionTest extends TestCase
         static::assertTrue($container->hasDefinition('scheduler.task_logger.subscriber'));
         static::assertTrue($container->getDefinition('scheduler.task_logger.subscriber')->hasTag('kernel.event_subscriber'));
 
-        static::assertTrue($container->hasDefinition('scheduler.stop_worker_sigterm_signal.subscriber'));
-        static::assertTrue($container->getDefinition('scheduler.stop_worker_sigterm_signal.subscriber')->hasTag('kernel.event_subscriber'));
+        static::assertTrue($container->hasDefinition('scheduler.stop_worker_signal.subscriber'));
+        static::assertTrue($container->getDefinition('scheduler.stop_worker_signal.subscriber')->hasTag('kernel.event_subscriber'));
 
         static::assertTrue($container->hasDefinition('scheduler.stop_watch'));
         static::assertTrue($container->hasDefinition('scheduler.task_execution.tracker'));

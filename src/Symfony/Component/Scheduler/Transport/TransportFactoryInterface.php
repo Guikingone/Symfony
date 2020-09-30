@@ -11,6 +11,7 @@
 
 namespace Symfony\Component\Scheduler\Transport;
 
+use Symfony\Component\Scheduler\SchedulePolicy\SchedulePolicyOrchestratorInterface;
 use Symfony\Component\Serializer\SerializerInterface;
 
 /**
@@ -24,10 +25,11 @@ interface TransportFactoryInterface
      * @param Dsn                                 $dsn
      * @param array<string,int|string|bool|array> $options
      * @param SerializerInterface                 $serializer
+     * @param SchedulePolicyOrchestratorInterface $schedulePolicyOrchestrator
      *
      * @return TransportInterface
      */
-    public function createTransport(Dsn $dsn, array $options, SerializerInterface $serializer): TransportInterface;
+    public function createTransport(Dsn $dsn, array $options, SerializerInterface $serializer, SchedulePolicyOrchestratorInterface $schedulePolicyOrchestrator): TransportInterface;
 
     /**
      * @param string                              $dsn

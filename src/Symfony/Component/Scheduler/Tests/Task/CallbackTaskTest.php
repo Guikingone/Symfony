@@ -25,6 +25,14 @@ final class CallbackTaskTest extends TestCase
         new CallbackTask('foo', [$this, 'test']);
     }
 
+    public function testTaskCanBeCreatedWithValidCallable(): void
+    {
+        $task = new CallbackTask('foo', [new FooService(), 'echo']);
+
+        static::assertNotEmpty($task->getCallback());
+        static::assertEmpty($task->getArguments());
+    }
+
     public function testTaskCanBeCreatedWithValidCallback(): void
     {
         $task = new CallbackTask('foo', function () {
@@ -64,5 +72,13 @@ final class CallbackTaskTest extends TestCase
         $task->setArguments(['value' => 'test']);
 
         static::assertNotEmpty($task->getArguments());
+    }
+}
+
+final class FooService
+{
+    public function echo(): void
+    {
+        echo 'Symfony';
     }
 }

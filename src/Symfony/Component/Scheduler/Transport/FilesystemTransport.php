@@ -15,7 +15,7 @@ use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Component\Finder\Finder;
 use Symfony\Component\Scheduler\Exception\InvalidArgumentException;
 use Symfony\Component\Scheduler\Exception\LogicException;
-use Symfony\Component\Scheduler\ExecutionModeOrchestrator;
+use Symfony\Component\Scheduler\SchedulePolicy\SchedulePolicyOrchestratorInterface;
 use Symfony\Component\Scheduler\Task\TaskInterface;
 use Symfony\Component\Scheduler\Task\TaskList;
 use Symfony\Component\Scheduler\Task\TaskListInterface;
@@ -28,7 +28,11 @@ use Symfony\Component\Serializer\SerializerInterface;
  */
 final class FilesystemTransport implements TransportInterface
 {
-    private const TASK_FILENAME_MASK = '%s/%s.json';
+    private const DEFAULT_OPTIONS = [
+        'execution_mode' => 'first_in_first_out',
+    ];
+
+    private const TASK_FILENAME_MASK = '%s/_symfony_scheduler_/%s.json';
 
     private $filesystem;
     private $path;
@@ -36,13 +40,13 @@ final class FilesystemTransport implements TransportInterface
     private $options;
     private $serializer;
 
-    public function __construct(string $path = null, array $options = [], SerializerInterface $serializer = null)
+    public function __construct(string $path = null, array $options = [], SerializerInterface $serializer = null, SchedulePolicyOrchestratorInterface $schedulePolicyOrchestrator = null)
     {
         $this->filesystem = new Filesystem();
         $this->path = null === $path ? sys_get_temp_dir() : $path;
-        $this->options = $options;
+        $this->options = array_replace_recursive(self::DEFAULT_OPTIONS, $options);
         $this->serializer = $serializer;
-        $this->orchestrator = new ExecutionModeOrchestrator($options['execution_mode'] ?? ExecutionModeOrchestrator::FIFO);
+        $this->orchestrator = $schedulePolicyOrchestrator;
     }
 
     /**
@@ -59,7 +63,7 @@ final class FilesystemTransport implements TransportInterface
             $tasks[] = $this->get(strtr($task->getFilename(), ['.json' => '']));
         }
 
-        return new TaskList($tasks);
+        return new TaskList(null !== $this->orchestrator ? $this->orchestrator->sort($this->options['execution_mode'], $tasks) : $tasks);
     }
 
     /**
@@ -80,7 +84,7 @@ final class FilesystemTransport implements TransportInterface
     public function create(TaskInterface $task): void
     {
         if ($this->fileExist($task->getName())) {
-            throw new InvalidArgumentException(sprintf('The "%s" task has already been scheduled', $task->getName()));
+            return;
         }
 
         $data = $this->serializer->serialize($task, 'json');
@@ -93,7 +97,9 @@ final class FilesystemTransport implements TransportInterface
     public function update(string $taskName, TaskInterface $updatedTask): void
     {
         if (!$this->fileExist($taskName)) {
-            throw new InvalidArgumentException(sprintf('The "%s" task does not exist', $taskName));
+            $this->create($updatedTask);
+
+            return;
         }
 
         $this->filesystem->remove(sprintf(self::TASK_FILENAME_MASK, $this->path, $taskName));

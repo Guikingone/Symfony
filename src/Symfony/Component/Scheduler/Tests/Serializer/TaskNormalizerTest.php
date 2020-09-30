@@ -72,15 +72,31 @@ final class TaskNormalizerTest extends TestCase
         static::assertArrayHasKey('taskInternalType', $data);
     }
 
-    public function testCallbackTaskCannotBeDenormalized(): void
+    public function testCallbackTaskCannotBeDenormalizedWithClosure(): void
     {
         $normalizer = new TaskNormalizer(new DateTimeNormalizer(), new DateTimeZoneNormalizer(), new DateIntervalNormalizer(), new ObjectNormalizer());
 
         static::expectException(InvalidArgumentException::class);
-        static::expectExceptionMessage('CallbackTask cannot be sent to external transport, consider executing it thanks to "Symfony\Component\Scheduler\Worker\Worker::execute()"');
+        static::expectExceptionMessage('CallbackTask with closure cannot be sent to external transport, consider executing it thanks to "Symfony\Component\Scheduler\Worker\Worker::execute()"');
         $normalizer->normalize(new CallbackTask('foo', function () {
             echo 'Symfony!';
         }));
+    }
+
+    public function testCallbackTaskCanBeDenormalizedWithCallable(): void
+    {
+        $objectNormalizer = new ObjectNormalizer();
+
+        $serializer = new Serializer([new TaskNormalizer(new DateTimeNormalizer(), new DateTimeZoneNormalizer(), new DateIntervalNormalizer(), $objectNormalizer), $objectNormalizer], [new JsonEncoder()]);
+        $objectNormalizer->setSerializer($serializer);
+
+        $task = new CallbackTask('foo', [new CallbackTaskCallable(), 'echo']);
+
+        $body = $serializer->serialize(new CallbackTask('foo', [new CallbackTaskCallable(), 'echo']), 'json');
+        $deserializedTask = $serializer->deserialize($body, TaskInterface::class, 'json');
+
+        static::assertInstanceOf(CallbackTask::class, $deserializedTask);
+        static::assertEquals($task->getCallback(), $deserializedTask->getCallback());
     }
 
     public function testCommandTaskCanBeDenormalized(): void
@@ -215,6 +231,25 @@ final class TaskNormalizerTest extends TestCase
         static::assertSame('* * * * *', $task->getExpression());
     }
 
+    public function testNotificationTaskWithMultipleRecipientsCanBeDenormalized(): void
+    {
+        $objectNormalizer = new ObjectNormalizer();
+
+        $serializer = new Serializer([new TaskNormalizer(new DateTimeNormalizer(), new DateTimeZoneNormalizer(), new DateIntervalNormalizer(), $objectNormalizer), $objectNormalizer], [new JsonEncoder()]);
+        $objectNormalizer->setSerializer($serializer);
+
+        $data = $serializer->serialize(new NotificationTask('foo', new Notification('bar'), new Recipient('test@test.fr', ''), new Recipient('foo@test.fr', '')), 'json');
+        $task = $serializer->deserialize($data, TaskInterface::class, 'json');
+
+        static::assertInstanceOf(NotificationTask::class, $task);
+        static::assertSame('foo', $task->getName());
+        static::assertInstanceOf(Notification::class, $task->getNotification());
+        static::assertCount(2, $task->getRecipients());
+        static::assertSame('test@test.fr', $task->getRecipients()[0]->getEmail());
+        static::assertSame('foo@test.fr', $task->getRecipients()[1]->getEmail());
+        static::assertSame('* * * * *', $task->getExpression());
+    }
+
     public function testHttpTaskCanBeDenormalized(): void
     {
         $objectNormalizer = new ObjectNormalizer();
@@ -254,5 +289,13 @@ final class FooMessage
     public function setId(int $id): void
     {
         $this->id = $id;
+    }
+}
+
+final class CallbackTaskCallable
+{
+    public function echo(): string
+    {
+        return 'Symfony';
     }
 }

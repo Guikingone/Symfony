@@ -13,6 +13,7 @@ namespace Symfony\Component\Scheduler\Command;
 
 use Cron\CronExpression;
 use Symfony\Component\Console\Command\Command;
+use Symfony\Component\Console\Helper\Helper;
 use Symfony\Component\Console\Helper\Table;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
@@ -48,11 +49,23 @@ final class ListTasksCommand extends Command
     protected function configure(): void
     {
         $this
+            ->setDescription('List the tasks')
             ->setDefinition([
                 new InputOption('expression', null, InputOption::VALUE_OPTIONAL, 'The expression of the tasks'),
                 new InputOption('state', 's', InputOption::VALUE_OPTIONAL, 'The state of the tasks'),
             ])
-            ->setDescription('List the tasks')
+            ->setHelp(<<<'EOF'
+The <info>%command.name%</info> command list tasks.
+
+    <info>php %command.full_name%</info>
+
+Use the --expression option to list the tasks with a specific expression:
+    <info>php %command.full_name% --expression=* * * * *</info>
+
+Use the --state option to list the tasks with a specific state:
+    <info>php %command.full_name% --state=paused</info>
+EOF
+            )
         ;
     }
 
@@ -92,7 +105,7 @@ final class ListTasksCommand extends Command
         $style->success(sprintf('%d task%s found', \count($tasks), \count($tasks) > 1 ? 's' : ''));
 
         $table = new Table($output);
-        $table->setHeaders(['Name', 'Description', 'Expression', 'Last execution date', 'Next execution date', 'Last execution duration', 'State', 'Tags']);
+        $table->setHeaders(['Name', 'Description', 'Expression', 'Last execution date', 'Next execution date', 'Last execution duration', 'Last execution memory usage', 'State', 'Tags']);
 
         $tableRows = [];
         array_walk($tasks, function (TaskInterface $task) use (&$tableRows): void {
@@ -102,7 +115,8 @@ final class ListTasksCommand extends Command
                 $task->getExpression(),
                 null !== $task->getLastExecution() ? $task->getLastExecution()->format(DATE_ATOM) : 'Not executed',
                 CronExpression::factory($task->getExpression())->getNextRunDate()->format(DATE_ATOM),
-                null !== $task->getExecutionComputationTime() ? sprintf('%d milliseconds', $task->getExecutionComputationTime()) : 'Not tracked',
+                null !== $task->getExecutionComputationTime() ? Helper::formatTime($task->getExecutionComputationTime() / 1000) : 'Not tracked',
+                null !== $task->getExecutionMemoryUsage() ? Helper::formatMemory($task->getExecutionMemoryUsage()) : 'Not tracked',
                 $task->getState(),
                 implode(', ', $task->getTags()),
             ];

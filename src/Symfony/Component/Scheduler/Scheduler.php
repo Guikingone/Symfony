@@ -41,10 +41,10 @@ final class Scheduler implements SchedulerInterface
     private $eventDispatcher;
     private $bus;
 
-    public function __construct(\DateTimeZone $timezone, TransportInterface $transport, EventDispatcherInterface $eventDispatcher = null, MessageBusInterface $bus = null)
+    public function __construct(string $timezone, TransportInterface $transport, EventDispatcherInterface $eventDispatcher = null, MessageBusInterface $bus = null)
     {
-        $this->initializationDate = new \DateTimeImmutable('now', $timezone);
-        $this->timezone = $timezone;
+        $this->timezone = new \DateTimeZone($timezone);
+        $this->initializationDate = new \DateTimeImmutable('now', $this->timezone);
         $this->transport = $transport;
         $this->eventDispatcher = $eventDispatcher;
         $this->bus = $bus;

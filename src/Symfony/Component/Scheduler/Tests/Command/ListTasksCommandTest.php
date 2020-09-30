@@ -39,6 +39,18 @@ final class ListTasksCommandTest extends TestCase
         static::assertTrue($command->getDefinition()->hasOption('state'));
         static::assertSame('The state of the tasks', $command->getDefinition()->getOption('state')->getDescription());
         static::assertSame('s', $command->getDefinition()->getOption('state')->getShortcut());
+        static::assertSame($command->getHelp(), <<<'EOF'
+The <info>%command.name%</info> command list tasks.
+
+    <info>php %command.full_name%</info>
+
+Use the --expression option to list the tasks with a specific expression:
+    <info>php %command.full_name% --expression=* * * * *</info>
+
+Use the --state option to list the tasks with a specific state:
+    <info>php %command.full_name% --state=paused</info>
+EOF
+        );
     }
 
     public function testCommandCannotReturnTaskOnEmptyScheduler(): void
@@ -230,6 +242,7 @@ final class ListTasksCommandTest extends TestCase
         static::assertStringContainsString('Last execution date', $tester->getDisplay());
         static::assertStringContainsString('Next execution date', $tester->getDisplay());
         static::assertStringContainsString('Last execution duration', $tester->getDisplay());
+        static::assertStringContainsString('Last execution memory usage', $tester->getDisplay());
         static::assertStringContainsString('State', $tester->getDisplay());
         static::assertStringContainsString('Tags', $tester->getDisplay());
         static::assertStringContainsString('app', $tester->getDisplay());

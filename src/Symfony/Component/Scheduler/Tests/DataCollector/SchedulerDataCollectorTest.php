@@ -14,7 +14,6 @@ namespace Symfony\Component\Scheduler\Tests\DataCollector;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Scheduler\DataCollector\SchedulerDataCollector;
 use Symfony\Component\Scheduler\EventListener\TaskLoggerSubscriber;
-use Symfony\Component\Scheduler\Task\TaskListInterface;
 
 /**
  * @author Guillaume Loulier <contact@guillaumeloulier.fr>
@@ -35,11 +34,6 @@ final class SchedulerDataCollectorTest extends TestCase
         $dataCollector = new SchedulerDataCollector($logger);
         $dataCollector->lateCollect();
 
-        static::assertArrayHasKey('executedTasks', $dataCollector->getTasks());
-        static::assertInstanceOf(TaskListInterface::class, $dataCollector->getTasks()['executedTasks']);
-        static::assertArrayHasKey('failedTasks', $dataCollector->getTasks());
-        static::assertInstanceOf(TaskListInterface::class, $dataCollector->getTasks()['failedTasks']);
-        static::assertArrayHasKey('scheduledTasks', $dataCollector->getTasks());
-        static::assertInstanceOf(TaskListInterface::class, $dataCollector->getTasks()['scheduledTasks']);
+        static::assertEmpty($dataCollector->getEvents());
     }
 }

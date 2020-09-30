@@ -14,7 +14,6 @@ namespace Symfony\Component\Scheduler\Tests\Runner;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Scheduler\Runner\CallbackTaskRunner;
 use Symfony\Component\Scheduler\Task\CallbackTask;
-use Symfony\Component\Scheduler\Task\Output;
 use Symfony\Component\Scheduler\Task\ShellTask;
 use Symfony\Component\Scheduler\Task\TaskInterface;
 
@@ -33,6 +32,7 @@ final class CallBackTaskRunnerTest extends TestCase
         $task = new CallbackTask('foo', function () {
             return 1 + 1;
         });
+
         static::assertTrue($runner->support($task));
     }
 
@@ -43,9 +43,23 @@ final class CallBackTaskRunnerTest extends TestCase
             return 1 + 1;
         });
 
-        static::assertInstanceOf(Output::class, $runner->run($task));
-        static::assertSame('2', $runner->run($task)->getOutput());
-        static::assertSame(TaskInterface::SUCCEED, $runner->run($task)->getTask()->getExecutionState());
+        $output = $runner->run($task);
+
+        static::assertSame(TaskInterface::SUCCEED, $task->getExecutionState());
+        static::assertSame('2', $output->getOutput());
+        static::assertSame(TaskInterface::SUCCEED, $output->getTask()->getExecutionState());
+    }
+
+    public function testRunnerCanExecuteValidTaskWithCallable(): void
+    {
+        $runner = new CallbackTaskRunner();
+        $task = new CallbackTask('foo', [new FooCallable(), 'echo']);
+
+        $output = $runner->run($task);
+
+        static::assertSame(TaskInterface::SUCCEED, $task->getExecutionState());
+        static::assertSame('Symfony', $runner->run($task)->getOutput());
+        static::assertSame(TaskInterface::SUCCEED, $output->getTask()->getExecutionState());
     }
 
     public function testRunnerCanExecuteValidTaskWithArguments(): void
@@ -55,9 +69,11 @@ final class CallBackTaskRunnerTest extends TestCase
             return $a * $b;
         }, [1, 2]);
 
-        static::assertInstanceOf(Output::class, $runner->run($task));
+        $output = $runner->run($task);
+
+        static::assertSame(TaskInterface::SUCCEED, $task->getExecutionState());
         static::assertSame('2', $runner->run($task)->getOutput());
-        static::assertSame(TaskInterface::SUCCEED, $runner->run($task)->getTask()->getExecutionState());
+        static::assertSame(TaskInterface::SUCCEED, $output->getTask()->getExecutionState());
     }
 
     public function testRunnerCanExecuteInValidTask(): void
@@ -67,8 +83,18 @@ final class CallBackTaskRunnerTest extends TestCase
             return $a * $b;
         }, [1]);
 
-        static::assertInstanceOf(Output::class, $runner->run($task));
-        static::assertNull($runner->run($task)->getOutput());
-        static::assertSame(TaskInterface::ERRORED, $runner->run($task)->getTask()->getExecutionState());
+        $output = $runner->run($task);
+
+        static::assertSame(TaskInterface::ERRORED, $task->getExecutionState());
+        static::assertNull($output->getOutput());
+        static::assertSame(TaskInterface::ERRORED, $output->getTask()->getExecutionState());
+    }
+}
+
+final class FooCallable
+{
+    public function echo(): string
+    {
+        return 'Symfony';
     }
 }

@@ -134,6 +134,8 @@ final class Worker implements WorkerInterface
             }
 
             sleep($this->getSleepDuration());
+
+            $this->execute($options);
         }
 
         $this->dispatch(new WorkerStoppedEvent($this));
@@ -228,7 +230,7 @@ final class Worker implements WorkerInterface
 
     private function getSleepDuration(): int
     {
-        $nextExecutionDate = new \DateTimeImmutable('+1 minute', $this->scheduler->getTimezone());
+        $nextExecutionDate = new \DateTimeImmutable('+ 1 minute', $this->scheduler->getTimezone());
         $updatedNextExecutionDate = $nextExecutionDate->setTime((int) $nextExecutionDate->format('H'), (int) $nextExecutionDate->format('i'), 0);
 
         return (new \DateTimeImmutable('now', $this->scheduler->getTimezone()))->diff($updatedNextExecutionDate)->s + $this->options['sleep_duration_delay'];

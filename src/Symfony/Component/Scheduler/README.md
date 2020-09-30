@@ -38,7 +38,7 @@ use Symfony\Component\Stopwatch\Stopwatch;
 $eventDispatcher = new EventDispatcher();
 
 $transport = new InMemoryTransport();
-$scheduler = new Scheduler(new \DateTimeZone('UTC'), $transport, $eventDispatcher);
+$scheduler = new Scheduler('UTC', $transport, $eventDispatcher);
 $scheduler->schedule(new ShellTask('app.foo', ['ls', '-al']));
 
 $worker = new Worker($scheduler, [], new TaskExecutionTracker(new Stopwatch()), $eventDispatcher);

@@ -13,6 +13,7 @@ namespace Symfony\Component\Scheduler\Bridge\Doctrine\Transport;
 
 use Doctrine\Persistence\ConnectionRegistry;
 use Symfony\Component\Scheduler\Exception\TransportException;
+use Symfony\Component\Scheduler\SchedulePolicy\SchedulePolicyOrchestratorInterface;
 use Symfony\Component\Scheduler\Transport\Dsn;
 use Symfony\Component\Scheduler\Transport\TransportFactoryInterface;
 use Symfony\Component\Scheduler\Transport\TransportInterface;
@@ -35,7 +36,7 @@ final class DoctrineTransportFactory implements TransportFactoryInterface
     /**
      * {@inheritdoc}
      */
-    public function createTransport(Dsn $dsn, array $options, SerializerInterface $serializer): TransportInterface
+    public function createTransport(Dsn $dsn, array $options, SerializerInterface $serializer, SchedulePolicyOrchestratorInterface $schedulePolicyOrchestrator): TransportInterface
     {
         $connectionOptions = [
             'auto_setup' => $dsn->getOption('auto_setup'),

@@ -17,6 +17,7 @@ use PHPUnit\Framework\TestCase;
 use Symfony\Component\Scheduler\Bridge\Doctrine\Transport\DoctrineTransport;
 use Symfony\Component\Scheduler\Bridge\Doctrine\Transport\DoctrineTransportFactory;
 use Symfony\Component\Scheduler\Exception\TransportException;
+use Symfony\Component\Scheduler\SchedulePolicy\SchedulePolicyOrchestratorInterface;
 use Symfony\Component\Scheduler\Transport\Dsn;
 use Symfony\Component\Serializer\SerializerInterface;
 
@@ -37,6 +38,8 @@ final class DoctrineTransportFactoryTest extends TestCase
 
     public function testFactoryCannotReturnUndefinedTransport(): void
     {
+        $schedulePolicyOrchestrator = $this->createMock(SchedulePolicyOrchestratorInterface::class);
+
         $registry = $this->createMock(ConnectionRegistry::class);
         $registry->expects(self::once())->method('getConnection')->willThrowException(new \InvalidArgumentException('Doctrine %s Connection named "%s" does not exist.'));
 
@@ -46,11 +49,12 @@ final class DoctrineTransportFactoryTest extends TestCase
 
         static::expectException(TransportException::class);
         static::expectExceptionMessage('Could not find Doctrine connection from Scheduler DSN "doctrine://test".');
-        $factory->createTransport(Dsn::fromString('doctrine://test'), [], $serializer);
+        $factory->createTransport(Dsn::fromString('doctrine://test'), [], $serializer, $schedulePolicyOrchestrator);
     }
 
     public function testFactoryReturnTransport(): void
     {
+        $schedulePolicyOrchestrator = $this->createMock(SchedulePolicyOrchestratorInterface::class);
         $connection = $this->createMock(Connection::class);
 
         $registry = $this->createMock(ConnectionRegistry::class);
@@ -59,11 +63,12 @@ final class DoctrineTransportFactoryTest extends TestCase
         $serializer = $this->createMock(SerializerInterface::class);
 
         $factory = new DoctrineTransportFactory($registry);
-        static::assertInstanceOf(DoctrineTransport::class, $factory->createTransport(Dsn::fromString('doctrine://default'), [], $serializer));
+        static::assertInstanceOf(DoctrineTransport::class, $factory->createTransport(Dsn::fromString('doctrine://default'), [], $serializer, $schedulePolicyOrchestrator));
     }
 
     public function testFactoryReturnTransportWithExecutionMode(): void
     {
+        $schedulePolicyOrchestrator = $this->createMock(SchedulePolicyOrchestratorInterface::class);
         $connection = $this->createMock(Connection::class);
 
         $registry = $this->createMock(ConnectionRegistry::class);
@@ -72,11 +77,12 @@ final class DoctrineTransportFactoryTest extends TestCase
         $serializer = $this->createMock(SerializerInterface::class);
 
         $factory = new DoctrineTransportFactory($registry);
-        static::assertInstanceOf(DoctrineTransport::class, $factory->createTransport(Dsn::fromString('doctrine://default?execution_mode=first_in_first_out'), [], $serializer));
+        static::assertInstanceOf(DoctrineTransport::class, $factory->createTransport(Dsn::fromString('doctrine://default?execution_mode=first_in_first_out'), [], $serializer, $schedulePolicyOrchestrator));
     }
 
     public function testFactoryReturnTransportWithTableName(): void
     {
+        $schedulePolicyOrchestrator = $this->createMock(SchedulePolicyOrchestratorInterface::class);
         $connection = $this->createMock(Connection::class);
 
         $registry = $this->createMock(ConnectionRegistry::class);
@@ -85,6 +91,6 @@ final class DoctrineTransportFactoryTest extends TestCase
         $serializer = $this->createMock(SerializerInterface::class);
 
         $factory = new DoctrineTransportFactory($registry);
-        static::assertInstanceOf(DoctrineTransport::class, $factory->createTransport(Dsn::fromString('doctrine://default?table_name=test'), [], $serializer));
+        static::assertInstanceOf(DoctrineTransport::class, $factory->createTransport(Dsn::fromString('doctrine://default?table_name=test'), [], $serializer, $schedulePolicyOrchestrator));
     }
 }

@@ -14,6 +14,7 @@ namespace Symfony\Component\Scheduler\Command;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
 use Symfony\Component\Console\Command\Command;
+use Symfony\Component\Console\Helper\Helper;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
@@ -23,6 +24,7 @@ use Symfony\Component\Scheduler\EventListener\StopWorkerOnFailureLimitSubscriber
 use Symfony\Component\Scheduler\EventListener\StopWorkerOnTaskLimitSubscriber;
 use Symfony\Component\Scheduler\EventListener\StopWorkerOnTimeLimitSubscriber;
 use Symfony\Component\Scheduler\SchedulerInterface;
+use Symfony\Component\Scheduler\Task\Output;
 use Symfony\Component\Scheduler\Worker\WorkerInterface;
 use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
 
@@ -68,16 +70,16 @@ final class ConsumeTasksCommand extends Command
             ->setHelp(<<<'EOF'
 The <info>%command.name%</info> command consumes due tasks.
 
-    <info>php %command.full_name% <scheduler-name></info>
+    <info>php %command.full_name%</info>
 
 Use the --limit option to limit the number of tasks consumed:
-    <info>php %command.full_name% <scheduler-name> --limit=10</info>
+    <info>php %command.full_name% --limit=10</info>
 
 Use the --time-limit option to stop the worker when the given time limit (in seconds) is reached:
-    <info>php %command.full_name% <scheduler-name> --time-limit=3600</info>
+    <info>php %command.full_name% --time-limit=3600</info>
 
 Use the --failure-limit option to stop the worker when the given amount of failed tasks is reached:
-    <info>php %command.full_name% <scheduler-name> --time-limit=3600</info>
+    <info>php %command.full_name% --time-limit=3600</info>
 EOF
             )
         ;
@@ -88,11 +90,11 @@ EOF
      */
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
-        $io = new SymfonyStyle($input, $output);
+        $style = new SymfonyStyle($input, $output);
 
         $tasks = $this->scheduler->getDueTasks();
         if (0 === $tasks->count()) {
-            $io->warning('No due tasks found');
+            $style->warning('No due tasks found');
 
             return self::SUCCESS;
         }
@@ -117,32 +119,27 @@ EOF
         if ($stopOptions) {
             $last = array_pop($stopOptions);
             $stopsWhen = ($stopOptions ? implode(', ', $stopOptions).' or ' : '').$last;
-            $io->comment(sprintf('The worker will automatically exit once %s.', $stopsWhen));
+            $style->comment(sprintf('The worker will automatically exit once %s.', $stopsWhen));
         }
 
         $tasksCount = $tasks->count();
 
-        $io->comment('Quit the worker with CONTROL-C.');
+        $style->comment('Quit the worker with CONTROL-C.');
 
         if (OutputInterface::VERBOSITY_VERBOSE > $output->getVerbosity()) {
-            $io->note(sprintf('The task%s output can be displayed if the -vv option is used', $tasksCount > 1 ? 's' : ''));
+            $style->note(sprintf('The task%s output can be displayed if the -vv option is used', $tasksCount > 1 ? 's' : ''));
         }
 
         if ($output->isVeryVerbose()) {
-            $this->eventDispatcher->addListener(TaskExecutedEvent::class, function (TaskExecutedEvent $event) use ($io): void {
-                if (null === $output = $event->getOutput()) {
-                    return;
-                }
-
-                $io->note(sprintf('Output for task %s:', $event->getTask()->getName()));
-                $io->writeln($event->getOutput()->getOutput());
-            });
+            $this->registerOutputSubscriber($style);
         }
+
+        $this->registerTaskExecutedSubscriber($style);
 
         try {
             $this->worker->execute();
         } catch (\Throwable $throwable) {
-            $io->error([
+            $style->error([
                 'An error occurred when executing the tasks',
                 $throwable->getMessage()
             ]);
@@ -151,5 +148,40 @@ EOF
         }
 
         return self::SUCCESS;
+    }
+
+    private function registerOutputSubscriber(SymfonyStyle $style): void
+    {
+        $this->eventDispatcher->addListener(TaskExecutedEvent::class, function (TaskExecutedEvent $event) use ($style): void {
+            $output = $event->getOutput();
+            if (null === $output->getOutput()) {
+                return;
+            }
+
+            $style->note(sprintf('Output for task "%s":', $event->getTask()->getName()));
+            $style->text($output->getOutput());
+        });
+    }
+
+    private function registerTaskExecutedSubscriber(SymfonyStyle $style): void
+    {
+        $this->eventDispatcher->addListener(TaskExecutedEvent::class, function (TaskExecutedEvent $event) use ($style): void {
+            $task = $event->getTask();
+            $outputType = $event->getOutput()->getType();
+            $taskExecutionDuration = Helper::formatTime($task->getExecutionComputationTime() / 1000);
+            $taskExecutionMemoryUsage = Helper::formatMemory($task->getExecutionMemoryUsage());
+
+            if ($outputType === Output::ERROR) {
+                $style->error([
+                    sprintf('Task "%s" failed. (Duration: %s, Memory used: %s)', $task->getName(), $taskExecutionDuration, $taskExecutionMemoryUsage),
+                ]);
+
+                return;
+            }
+
+            $style->success([
+                sprintf('Task "%s" succeed. (Duration: %s, Memory used: %s)', $task->getName(), $taskExecutionDuration, $taskExecutionMemoryUsage),
+            ]);
+        });
     }
 }

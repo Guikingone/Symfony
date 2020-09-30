@@ -24,7 +24,6 @@ use Symfony\Component\Scheduler\Bridge\Doctrine\Transport\DoctrineTransport;
 use Symfony\Component\Scheduler\Transport\TransportInterface;
 
 /**
- * @author Ryan Weaver <ryan@symfonycasts.com>
  * @author Guillaume Loulier <contact@guillaumeloulier.fr>
  *
  * {@see MessengerTransportDoctrineSchemaSubscriberTest for complete introduction}

@@ -11,6 +11,8 @@
 
 namespace Symfony\Component\Scheduler\Transport;
 
+use Symfony\Component\Scheduler\Exception\InvalidArgumentException;
+use Symfony\Component\Scheduler\Exception\LogicException;
 use Symfony\Component\Scheduler\Task\TaskInterface;
 use Symfony\Component\Scheduler\Task\TaskListInterface;
 
@@ -25,12 +27,30 @@ interface TransportInterface
 
     public function list(): TaskListInterface;
 
+    /**
+     * Add the task into the transport list, if the task name already exist, the new task is not added.
+     *
+     * @param TaskInterface $task
+     */
     public function create(TaskInterface $task): void;
 
+    /**
+     * Update an existing task using the $updatedTask payload, if the task does not exist, it should be created.
+     *
+     * @param string        $taskName
+     * @param TaskInterface $updatedTask
+     */
     public function update(string $taskName, TaskInterface $updatedTask): void;
 
     public function delete(string $taskName): void;
 
+    /**
+     * Allow to pause a task, if the task does not exist, a {@see InvalidArgumentException} must be thrown.
+     *
+     * If the task exist but it's already paused, a {@see LogicException} must be thrown.
+     *
+     * @param string $taskName
+     */
     public function pause(string $taskName): void;
 
     public function resume(string $taskName): void;

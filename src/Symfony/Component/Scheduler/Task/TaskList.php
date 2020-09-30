@@ -65,7 +65,7 @@ final class TaskList implements TaskListInterface
      */
     public function get(string $taskName): ?TaskInterface
     {
-        return $this->tasks[$taskName];
+        return $this->tasks[$taskName] ?? null;
     }
 
     /**

@@ -47,11 +47,23 @@ final class RemoveFailedTaskCommand extends Command
     protected function configure(): void
     {
         $this
+            ->setDescription('Remove given task from the scheduler')
             ->setDefinition([
                 new InputArgument('name', InputArgument::REQUIRED, 'The name of the task to remove'),
                 new InputOption('force', 'f', InputOption::VALUE_NONE, 'Force the operation without confirmation'),
             ])
-            ->setDescription('Remove given task from the scheduler')
+            ->setHelp(<<<'EOF'
+The <info>%command.name%</info> command remove a failed task.
+
+    <info>php %command.full_name%</info>
+
+Use the task-name argument to specify the task to remove:
+    <info>php %command.full_name% <task-name></info>
+
+Use the --force option to force the task deletion without asking for confirmation:
+    <info>php %command.full_name% <task-name> --force</info>
+EOF
+            )
         ;
     }
 

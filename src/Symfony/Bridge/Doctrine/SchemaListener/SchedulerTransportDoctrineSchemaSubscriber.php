@@ -21,6 +21,8 @@ use Symfony\Component\Scheduler\Transport\TransportInterface;
 
 /**
  * @author Guillaume Loulier <contact@guillaumeloulier.fr>
+ *
+ * @experimental in 5.3
  */
 final class SchedulerTransportDoctrineSchemaSubscriber implements EventSubscriber
 {

@@ -48,6 +48,7 @@ final class TaskExecutionTrackerTest extends TestCase
         $tracker->endTracking($task);
 
         static::assertNotNull($task->getExecutionComputationTime());
+        static::assertNotNull($task->getExecutionMemoryUsage());
     }
 
     public function provideTrackedTasks(): \Generator

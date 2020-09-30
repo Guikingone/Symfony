@@ -14,7 +14,7 @@ namespace Symfony\Component\Scheduler\Tests;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Messenger\Envelope;
 use Symfony\Component\Messenger\MessageBusInterface;
-use Symfony\Component\Scheduler\Exception\AlreadyScheduledTaskException;
+use Symfony\Component\Scheduler\SchedulePolicy\SchedulePolicyOrchestratorInterface;
 use Symfony\Component\Scheduler\Scheduler;
 use Symfony\Component\Scheduler\Task\ShellTask;
 use Symfony\Component\Scheduler\Task\TaskInterface;
@@ -39,7 +39,7 @@ final class SchedulerTest extends TestCase
 
         $messageBus = new SchedulerMessageBus();
         $transport = new InMemoryTransport(['executionMode' => 'first_in_first_out']);
-        $scheduler = new Scheduler(new \DateTimeZone('UTC'), $transport, $eventDispatcher, $messageBus);
+        $scheduler = new Scheduler('UTC', $transport, $eventDispatcher, $messageBus);
 
         $task->setQueued(true);
         $scheduler->schedule($task);
@@ -48,21 +48,22 @@ final class SchedulerTest extends TestCase
         static::assertInstanceOf(TaskListInterface::class, $scheduler->getTasks());
     }
 
-    /**
-     * @throws \Exception {@see Scheduler::__construct()}
-     *
-     * @dataProvider provideTasks
-     */
-    public function testTaskCannotBeScheduledTwice(TaskInterface $task): void
+    public function testTaskCannotBeScheduledTwice(): void
     {
-        $transport = new InMemoryTransport(['executionMode' => 'first_in_first_out']);
-        $scheduler = new Scheduler(new \DateTimeZone('UTC'), $transport);
+        $task = $this->createMock(TaskInterface::class);
+        $task->expects(self::exactly(2))->method('getName')->willReturn('foo');
+
+        $secondTask = $this->createMock(TaskInterface::class);
+        $secondTask->expects(self::once())->method('getName')->willReturn('foo');
+
+        $schedulePolicyOrchestrator = $this->createMock(SchedulePolicyOrchestratorInterface::class);
+        $schedulePolicyOrchestrator->expects(self::once())->method('sort')->willReturn(['foo' => $task]);
+
+        $transport = new InMemoryTransport(['execution_mode' => 'first_in_first_out'], $schedulePolicyOrchestrator);
+        $scheduler = new Scheduler('UTC', $transport);
 
         $scheduler->schedule($task);
-
-        static::expectException(AlreadyScheduledTaskException::class);
-        static::expectExceptionMessage(sprintf('The following task "%s" has already been scheduled!', $task->getName()));
-        $scheduler->schedule($task);
+        $scheduler->schedule($secondTask);
     }
 
     /**
@@ -70,12 +71,15 @@ final class SchedulerTest extends TestCase
      *
      * @dataProvider provideTasks
      */
-    public function testDueTasksCanBeReturnedWithoutEventDispatcher(TaskInterface $tasks): void
+    public function testDueTasksCanBeReturned(TaskInterface $task): void
     {
-        $transport = new InMemoryTransport(['executionMode' => 'first_in_first_out']);
-        $scheduler = new Scheduler(new \DateTimeZone('UTC'), $transport);
+        $schedulePolicyOrchestrator = $this->createMock(SchedulePolicyOrchestratorInterface::class);
+        $schedulePolicyOrchestrator->expects(self::once())->method('sort')->willReturn([$task->getName() => $task]);
 
-        $scheduler->schedule($tasks);
+        $transport = new InMemoryTransport(['executionMode' => 'first_in_first_out'], $schedulePolicyOrchestrator);
+        $scheduler = new Scheduler('UTC', $transport);
+
+        $scheduler->schedule($task);
         $dueTasks = $scheduler->getDueTasks();
 
         static::assertNotEmpty($dueTasks);
@@ -87,11 +91,14 @@ final class SchedulerTest extends TestCase
      *
      * @dataProvider provideTasks
      */
-    public function testDueTasksCanBeReturnedWithSpecificFilter(TaskInterface $tasks): void
+    public function testDueTasksCanBeReturnedWithSpecificFilter(TaskInterface $task): void
     {
-        $transport = new InMemoryTransport(['executionMode' => 'first_in_first_out']);
-        $scheduler = new Scheduler(new \DateTimeZone('UTC'), $transport);
-        $scheduler->schedule($tasks);
+        $schedulePolicyOrchestrator = $this->createMock(SchedulePolicyOrchestratorInterface::class);
+        $schedulePolicyOrchestrator->expects(self::once())->method('sort')->willReturn([$task->getName() => $task]);
+
+        $transport = new InMemoryTransport(['executionMode' => 'first_in_first_out'], $schedulePolicyOrchestrator);
+        $scheduler = new Scheduler('UTC', $transport);
+        $scheduler->schedule($task);
 
         $dueTasks = $scheduler->getTasks()->filter(function (TaskInterface $task): bool {
             return null !== $task->getTimezone() && 0 === $task->getPriority();
@@ -107,8 +114,11 @@ final class SchedulerTest extends TestCase
      */
     public function testTaskCanBeUnScheduled(TaskInterface $task): void
     {
-        $transport = new InMemoryTransport(['executionMode' => 'first_in_first_out']);
-        $scheduler = new Scheduler(new \DateTimeZone('UTC'), $transport);
+        $schedulePolicyOrchestrator = $this->createMock(SchedulePolicyOrchestratorInterface::class);
+        $schedulePolicyOrchestrator->expects(self::once())->method('sort')->willReturn([$task->getName() => $task]);
+
+        $transport = new InMemoryTransport(['executionMode' => 'first_in_first_out'], $schedulePolicyOrchestrator);
+        $scheduler = new Scheduler('UTC', $transport);
 
         $scheduler->schedule($task);
         static::assertNotEmpty($scheduler->getTasks());
@@ -124,8 +134,11 @@ final class SchedulerTest extends TestCase
      */
     public function testTaskCanBeUpdated(TaskInterface $task): void
     {
-        $transport = new InMemoryTransport(['executionMode' => 'first_in_first_out']);
-        $scheduler = new Scheduler(new \DateTimeZone('UTC'), $transport);
+        $schedulePolicyOrchestrator = $this->createMock(SchedulePolicyOrchestratorInterface::class);
+        $schedulePolicyOrchestrator->expects(self::once())->method('sort')->willReturn([$task->getName() => $task]);
+
+        $transport = new InMemoryTransport(['executionMode' => 'first_in_first_out'], $schedulePolicyOrchestrator);
+        $scheduler = new Scheduler('UTC', $transport);
 
         $scheduler->schedule($task);
         static::assertNotEmpty($scheduler->getTasks()->toArray());
@@ -146,8 +159,11 @@ final class SchedulerTest extends TestCase
      */
     public function testTaskCanBePausedAndResumed(TaskInterface $task): void
     {
-        $transport = new InMemoryTransport(['executionMode' => 'first_in_first_out']);
-        $scheduler = new Scheduler(new \DateTimeZone('UTC'), $transport);
+        $schedulePolicyOrchestrator = $this->createMock(SchedulePolicyOrchestratorInterface::class);
+        $schedulePolicyOrchestrator->expects(self::once())->method('sort')->willReturn([$task->getName() => $task]);
+
+        $transport = new InMemoryTransport(['executionMode' => 'first_in_first_out'], $schedulePolicyOrchestrator);
+        $scheduler = new Scheduler('UTC', $transport);
         $scheduler->schedule($task);
 
         static::assertNotEmpty($scheduler->getTasks());

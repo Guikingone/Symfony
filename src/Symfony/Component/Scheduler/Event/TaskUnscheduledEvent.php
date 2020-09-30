@@ -18,7 +18,7 @@ use Symfony\Contracts\EventDispatcher\Event;
  *
  * @experimental in 5.3
  */
-final class TaskUnscheduledEvent extends Event
+final class TaskUnscheduledEvent extends Event implements TaskEventInterface
 {
     private $task;
 

@@ -16,6 +16,9 @@ use Symfony\Component\Scheduler\SchedulePolicy\BatchPolicy;
 use Symfony\Component\Scheduler\SchedulePolicy\DeadlinePolicy;
 use Symfony\Component\Scheduler\SchedulePolicy\ExecutionDurationPolicy;
 use Symfony\Component\Scheduler\SchedulePolicy\FirstInFirstOutPolicy;
+use Symfony\Component\Scheduler\SchedulePolicy\FirstInLastOutPolicy;
+use Symfony\Component\Scheduler\SchedulePolicy\IdlePolicy;
+use Symfony\Component\Scheduler\SchedulePolicy\MemoryUsagePolicy;
 use Symfony\Component\Scheduler\SchedulePolicy\NicePolicy;
 use Symfony\Component\Scheduler\SchedulePolicy\RoundRobinPolicy;
 use Symfony\Component\Scheduler\SchedulePolicy\SchedulePolicyOrchestrator;
@@ -124,6 +127,60 @@ final class SchedulePolicyOrchestratorTest extends TestCase
             'foo' => $secondTask,
             'app' => $task,
         ], $orchestrator->sort('first_in_first_out', ['foo' => $secondTask, 'app' => $task]));
+    }
+
+    public function testSchedulePolicyCanSortTasksUsingFirstInLastOut(): void
+    {
+        $orchestrator = new SchedulePolicyOrchestrator([
+            new FirstInLastOutPolicy(),
+        ]);
+
+        $task = $this->createMock(TaskInterface::class);
+        $task->method('getScheduledAt')->willReturn(new \DateTimeImmutable('+ 1 minute'));
+
+        $secondTask = $this->createMock(TaskInterface::class);
+        $secondTask->method('getScheduledAt')->willReturn(new \DateTimeImmutable('+ 2 minute'));
+
+        static::assertSame([
+            'app' => $task,
+            'foo' => $secondTask,
+        ], $orchestrator->sort('first_in_last_out', ['foo' => $secondTask, 'app' => $task]));
+    }
+
+    public function testTasksCanBeSortTasksUsingIdle(): void
+    {
+        $orchestrator = new SchedulePolicyOrchestrator([
+            new IdlePolicy(),
+        ]);
+
+        $task = $this->createMock(TaskInterface::class);
+        $task->expects(self::once())->method('getPriority')->willReturn(-10);
+
+        $secondTask = $this->createMock(TaskInterface::class);
+        $secondTask->expects(self::exactly(2))->method('getPriority')->willReturn(-20);
+
+        $tasks = $orchestrator->sort('idle', ['app' => $secondTask, 'foo' => $task]);
+
+        static::assertCount(2, $tasks);
+        static::assertSame(['foo' => $task, 'app' => $secondTask], $tasks);
+    }
+
+    public function testTasksCanBeSortTasksUsingMemoryUsage(): void
+    {
+        $orchestrator = new SchedulePolicyOrchestrator([
+            new MemoryUsagePolicy(),
+        ]);
+
+        $task = $this->createMock(TaskInterface::class);
+        $task->method('getExecutionMemoryUsage')->willReturn(10);
+
+        $secondTask = $this->createMock(TaskInterface::class);
+        $secondTask->method('getExecutionMemoryUsage')->willReturn(15);
+
+        static::assertSame([
+            'app' => $task,
+            'foo' => $secondTask,
+        ], $orchestrator->sort('memory_usage', ['foo' => $secondTask, 'app' => $task]));
     }
 
     public function testSchedulePolicyCanSortTasksUsingNice(): void

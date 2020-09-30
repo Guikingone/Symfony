@@ -54,6 +54,21 @@ final class ConsumeTasksCommandTest extends TestCase
         static::assertTrue($command->getDefinition()->hasOption('failure-limit'));
         static::assertSame('Limit the amount of task allowed to fail', $command->getDefinition()->getOption('failure-limit')->getDescription());
         static::assertSame('f', $command->getDefinition()->getOption('failure-limit')->getShortcut());
+        static::assertSame($command->getHelp(), <<<'EOF'
+The <info>%command.name%</info> command consumes due tasks.
+
+    <info>php %command.full_name%</info>
+
+Use the --limit option to limit the number of tasks consumed:
+    <info>php %command.full_name% --limit=10</info>
+
+Use the --time-limit option to stop the worker when the given time limit (in seconds) is reached:
+    <info>php %command.full_name% --time-limit=3600</info>
+
+Use the --failure-limit option to stop the worker when the given amount of failed tasks is reached:
+    <info>php %command.full_name% --time-limit=3600</info>
+EOF
+        );
     }
 
     public function testCommandCannotConsumeEmptyTasks(): void
@@ -82,10 +97,8 @@ final class ConsumeTasksCommandTest extends TestCase
 
     public function testCommandCanConsumeTasks(): void
     {
-        $eventDispatcher = $this->createMock(EventDispatcherInterface::class);
+        $eventDispatcher = new EventDispatcher();
         $logger = $this->createMock(LoggerInterface::class);
-
-        $task = $this->createMock(TaskInterface::class);
 
         $taskList = $this->createMock(TaskListInterface::class);
         $taskList->expects(self::exactly(2))->method('count')->willReturn(1);
@@ -111,7 +124,7 @@ final class ConsumeTasksCommandTest extends TestCase
 
     public function testCommandCannotConsumeTasksWithError(): void
     {
-        $eventDispatcher = $this->createMock(EventDispatcherInterface::class);
+        $eventDispatcher = new EventDispatcher();
         $logger = $this->createMock(LoggerInterface::class);
 
         $task = $this->createMock(TaskInterface::class);
@@ -246,7 +259,9 @@ final class ConsumeTasksCommandTest extends TestCase
         $eventDispatcher = new EventDispatcher();
 
         $task = $this->createMock(TaskInterface::class);
-        $task->expects(self::exactly(2))->method('getName')->willReturn('foo');
+        $task->expects(self::exactly(3))->method('getName')->willReturn('foo');
+        $task->expects(self::once())->method('getExecutionComputationTime')->willReturn(10.05);
+        $task->expects(self::once())->method('getExecutionMemoryUsage')->willReturn(9507552);
 
         $taskList = $this->createMock(TaskListInterface::class);
         $taskList->expects(self::exactly(2))->method('count')->willReturn(1);
@@ -274,7 +289,11 @@ final class ConsumeTasksCommandTest extends TestCase
 
         static::assertSame(Command::SUCCESS, $tester->getStatusCode());
         static::assertStringContainsString('The worker will automatically exit once 1 tasks has been consumed.', $tester->getDisplay());
-        static::assertStringContainsString('Output for task foo:', $tester->getDisplay());
+        static::assertStringContainsString('Output for task "foo":', $tester->getDisplay());
         static::assertStringContainsString('Success output', $tester->getDisplay());
+        static::assertStringContainsString('Task "foo" succeed', $tester->getDisplay());
+        static::assertStringContainsString('Duration: < 1 sec', $tester->getDisplay());
+        static::assertStringContainsString('Memory used: 9.1 MiB', $tester->getDisplay());
+        static::assertStringNotContainsString('Task failed: "foo"', $tester->getDisplay());
     }
 }

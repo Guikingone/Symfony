@@ -12,10 +12,12 @@
 namespace Symfony\Component\Scheduler\EventListener;
 
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
+use Symfony\Component\Scheduler\Event\TaskEventInterface;
+use Symfony\Component\Scheduler\Event\TaskEventList;
 use Symfony\Component\Scheduler\Event\TaskExecutedEvent;
 use Symfony\Component\Scheduler\Event\TaskFailedEvent;
 use Symfony\Component\Scheduler\Event\TaskScheduledEvent;
-use Symfony\Component\Scheduler\Task\TaskList;
+use Symfony\Component\Scheduler\Event\TaskUnscheduledEvent;
 
 /**
  * @author Guillaume Loulier <contact@guillaumeloulier.fr>
@@ -24,39 +26,21 @@ use Symfony\Component\Scheduler\Task\TaskList;
  */
 final class TaskLoggerSubscriber implements EventSubscriberInterface
 {
-    private $scheduledTasks;
-    private $executedTasks;
-    private $failedTasks;
+    private $events;
 
     public function __construct()
     {
-        $this->scheduledTasks = new TaskList();
-        $this->executedTasks = new TaskList();
-        $this->failedTasks = new TaskList();
+        $this->events = new TaskEventList();
     }
 
-    public function onTaskScheduled(TaskScheduledEvent $event): void
+    public function onTask(TaskEventInterface $taskEvent): void
     {
-        $this->scheduledTasks->add($event->getTask());
+        $this->events->addEvent($taskEvent);
     }
 
-    public function onTaskExecuted(TaskExecutedEvent $event): void
+    public function getEvents(): TaskEventList
     {
-        $this->executedTasks->add($event->getTask());
-    }
-
-    public function onTaskFailed(TaskFailedEvent $event): void
-    {
-        $this->failedTasks->add($event->getTask());
-    }
-
-    public function getTasks(): array
-    {
-        return [
-            'scheduledTasks' => $this->scheduledTasks,
-            'executedTasks' => $this->executedTasks,
-            'failedTasks' => $this->failedTasks,
-        ];
+        return $this->events;
     }
 
     /**
@@ -65,9 +49,10 @@ final class TaskLoggerSubscriber implements EventSubscriberInterface
     public static function getSubscribedEvents(): array
     {
         return [
-            TaskScheduledEvent::class => ['onTaskScheduled', -255],
-            TaskExecutedEvent::class => ['onTaskExecuted', -255],
-            TaskFailedEvent::class => ['onTaskFailed', -255],
+            TaskExecutedEvent::class => ['onTask', -255],
+            TaskFailedEvent::class => ['onTask', -255],
+            TaskScheduledEvent::class => ['onTask', -255],
+            TaskUnscheduledEvent::class => ['onTask', -255],
         ];
     }
 }

@@ -72,6 +72,10 @@ interface TaskInterface
 
     public function setExecutionComputationTime(float $executionComputationTime = null): TaskInterface;
 
+    public function getExecutionMemoryUsage(): ?int;
+
+    public function setExecutionMemoryUsage(int $executionMemoryUsage = null): TaskInterface;
+
     public function getExecutionPeriod(): ?float;
 
     public function setExecutionPeriod(float $executionPeriod = null): TaskInterface;

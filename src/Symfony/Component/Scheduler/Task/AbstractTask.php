@@ -44,6 +44,7 @@ abstract class AbstractTask implements TaskInterface
             'expression' => '* * * * *',
             'execution_absolute_deadline' => null,
             'execution_computation_time' => null,
+            'execution_memory_usage' => null,
             'execution_period' => null,
             'execution_relative_deadline' => null,
             'execution_start_time' => null,
@@ -70,6 +71,7 @@ abstract class AbstractTask implements TaskInterface
         $resolver->setAllowedTypes('expression', ['string']);
         $resolver->setAllowedTypes('execution_absolute_deadline', [\DateInterval::class, 'null']);
         $resolver->setAllowedTypes('execution_computation_time', ['float', 'null']);
+        $resolver->setAllowedTypes('execution_memory_usage', ['int', 'null']);
         $resolver->setAllowedTypes('execution_relative_deadline', [\DateInterval::class, 'null']);
         $resolver->setAllowedTypes('execution_start_time', [\DateTimeImmutable::class, 'null']);
         $resolver->setAllowedTypes('execution_end_time', [\DateTimeImmutable::class, 'null']);
@@ -94,7 +96,7 @@ abstract class AbstractTask implements TaskInterface
             return $this->validateNice($nice);
         });
         $resolver->setAllowedValues('priority', function (int $priority): bool {
-            return $priority <= 1000 && $priority >= -1000;
+            return $this->validatePriority($priority);
         });
         $resolver->setAllowedValues('state', function (string $state): bool {
             return $this->validateState($state);
@@ -106,6 +108,7 @@ abstract class AbstractTask implements TaskInterface
         $resolver->setInfo('arrival_time', '[INTERNAL] The time when the task is retrieved in order to execute it');
         $resolver->setInfo('execution_absolute_deadline', '[INTERNAL] An addition of the "execution_start_time" and "execution_relative_deadline" options');
         $resolver->setInfo('execution_computation_time', '[Internal] Used to store the execution duration of a task');
+        $resolver->setInfo('execution_memory_usage', '[INTERNAL] The amount of memory used described as an integer');
         $resolver->setInfo('execution_period', '[Internal] Used to store the period during a task has been executed thanks to deadline sort');
         $resolver->setInfo('execution_relative_deadline', 'The estimated ending date of the task execution, must be a \DateInterval');
         $resolver->setInfo('execution_start_time', '[Internal] The start time of the task execution, mostly used by the internal sort process');
@@ -226,6 +229,18 @@ abstract class AbstractTask implements TaskInterface
     public function setExecutionComputationTime(float $executionComputationTime = null): TaskInterface
     {
         $this->options['execution_computation_time'] = $executionComputationTime;
+
+        return $this;
+    }
+
+    public function getExecutionMemoryUsage(): ?int
+    {
+        return $this->options['execution_memory_usage'];
+    }
+
+    public function setExecutionMemoryUsage(int $executionMemoryUsage = null): TaskInterface
+    {
+        $this->options['execution_memory_usage'] = $executionMemoryUsage;
 
         return $this;
     }
@@ -377,7 +392,7 @@ abstract class AbstractTask implements TaskInterface
 
     public function setPriority(int $priority): TaskInterface
     {
-        if ($priority > 1000 && $priority < -1000) {
+        if (!$this->validatePriority($priority)) {
             throw new InvalidArgumentException('The priority is invalid');
         }
 
@@ -477,6 +492,11 @@ abstract class AbstractTask implements TaskInterface
         }
 
         return $nice <= 19 && $nice >= -20;
+    }
+
+    private function validatePriority(int $priority): bool
+    {
+        return $priority <= 1000 && $priority >= -1000;
     }
 
     private function validateState(string $state): bool

@@ -59,6 +59,15 @@ final class RebootSchedulerCommand extends Command
                 new InputOption('dry-run', 'd', InputOption::VALUE_NONE, 'Test the reboot without executing the tasks, the "ready to reboot" tasks are displayed')
             ])
             ->setDescription('Reboot the scheduler')
+            ->setHelp(<<<'EOF'
+The <info>%command.name%</info> command reboot the scheduler.
+
+    <info>php %command.full_name%</info>
+
+Use the --dry-run option to list the tasks executed when the scheduler reboot:
+    <info>php %command.full_name% --dry-run</info>
+EOF
+            )
         ;
     }
 

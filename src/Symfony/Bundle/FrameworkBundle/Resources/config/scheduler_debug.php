@@ -20,7 +20,7 @@ return static function (ContainerConfigurator $container): void {
             service('scheduler.task_logger.subscriber'),
         ])
         ->tag('data_collector', [
-            'id' => 'scheduler',
+            'id' => SchedulerDataCollector::NAME,
             'template' => '@WebProfiler/Collector/scheduler.html.twig',
             'priority' => 255,
         ])

@@ -48,6 +48,8 @@ final class TaskExecutionTracker implements TaskExecutionTrackerInterface
             return;
         }
 
+        $task->setExecutionMemoryUsage(memory_get_usage());
+
         if (!$this->watch->isStarted(sprintf('task_execution.%s', $task->getName()))) {
             return;
         }

@@ -61,11 +61,6 @@ final class NotificationTask extends AbstractTask
         return $this;
     }
 
-    /**
-     * @param Recipient ...$recipients
-     *
-     * @return TaskInterface
-     */
     public function setRecipients(Recipient ...$recipients): TaskInterface
     {
         $this->options['recipients'] = $recipients;

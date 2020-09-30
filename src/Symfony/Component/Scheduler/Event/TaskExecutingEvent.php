@@ -19,7 +19,7 @@ use Symfony\Contracts\EventDispatcher\Event;
  *
  * @experimental in 5.3
  */
-final class TaskExecutingEvent extends Event
+final class TaskExecutingEvent extends Event implements TaskEventInterface
 {
     private $task;
 

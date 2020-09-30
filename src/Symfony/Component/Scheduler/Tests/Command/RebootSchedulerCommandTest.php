@@ -41,6 +41,15 @@ final class RebootSchedulerCommandTest extends TestCase
         static::assertTrue($command->getDefinition()->hasOption('dry-run'));
         static::assertSame('d', $command->getDefinition()->getOption('dry-run')->getShortcut());
         static::assertSame('Test the reboot without executing the tasks, the "ready to reboot" tasks are displayed', $command->getDefinition()->getOption('dry-run')->getDescription());
+        static::assertSame($command->getHelp(), <<<'EOF'
+The <info>%command.name%</info> command reboot the scheduler.
+
+    <info>php %command.full_name%</info>
+
+Use the --dry-run option to list the tasks executed when the scheduler reboot:
+    <info>php %command.full_name% --dry-run</info>
+EOF
+        );
     }
 
     public function testRebootCanSucceedOnHydratedTasksListButWithoutRebootTask(): void

@@ -2333,7 +2333,7 @@ class FrameworkExtension extends Extension
             throw new LogicException('Scheduler support cannot be enabled as the Scheduler component is not installed. Try running "composer require symfony/scheduler".');
         }
 
-        $container->setParameter('scheduler.timezone', new \DateTimeZone($config['timezone']));
+        $container->setParameter('scheduler.timezone', $config['timezone']);
         $container->setParameter('scheduler.trigger_path', $config['path']);
 
         $loader->load('scheduler.php');
@@ -2355,6 +2355,7 @@ class FrameworkExtension extends Extension
                 new Reference(MessageBusInterface::class, ContainerInterface::NULL_ON_INVALID_REFERENCE),
             ])
         ;
+
         $container->setAlias(SchedulerInterface::class, 'scheduler.scheduler');
         $container->registerAliasForArgument('scheduler.scheduler', SchedulerInterface::class, 'scheduler');
 

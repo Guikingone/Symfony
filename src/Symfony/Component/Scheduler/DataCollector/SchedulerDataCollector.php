@@ -15,6 +15,7 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\DataCollector\DataCollector;
 use Symfony\Component\HttpKernel\DataCollector\LateDataCollectorInterface;
+use Symfony\Component\Scheduler\Event\TaskEventList;
 use Symfony\Component\Scheduler\EventListener\TaskLoggerSubscriber;
 
 /**
@@ -24,11 +25,13 @@ use Symfony\Component\Scheduler\EventListener\TaskLoggerSubscriber;
  */
 final class SchedulerDataCollector extends DataCollector implements LateDataCollectorInterface
 {
-    private $tasks;
+    public const NAME = 'scheduler';
+
+    private $events;
 
     public function __construct(TaskLoggerSubscriber $logger)
     {
-        $this->tasks = $logger->getTasks();
+        $this->events = $logger->getEvents();
     }
 
     /**
@@ -46,12 +49,12 @@ final class SchedulerDataCollector extends DataCollector implements LateDataColl
     {
         $this->reset();
 
-        $this->data['tasks'] = $this->tasks;
+        $this->data['events'] = $this->events;
     }
 
-    public function getTasks(): array
+    public function getEvents(): TaskEventList
     {
-        return $this->data['tasks'];
+        return $this->events;
     }
 
     /**
@@ -67,6 +70,6 @@ final class SchedulerDataCollector extends DataCollector implements LateDataColl
      */
     public function getName(): string
     {
-        return 'scheduler';
+        return self::NAME;
     }
 }

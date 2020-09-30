@@ -40,6 +40,18 @@ final class RemoveFailedTaskCommandTest extends TestCase
         static::assertTrue($command->getDefinition()->hasOption('force'));
         static::assertSame('Force the operation without confirmation', $command->getDefinition()->getOption('force')->getDescription());
         static::assertSame('f', $command->getDefinition()->getOption('force')->getShortcut());
+        static::assertSame($command->getHelp(), <<<'EOF'
+The <info>%command.name%</info> command remove a failed task.
+
+    <info>php %command.full_name%</info>
+
+Use the task-name argument to specify the task to remove:
+    <info>php %command.full_name% <task-name></info>
+
+Use the --force option to force the task deletion without asking for confirmation:
+    <info>php %command.full_name% <task-name> --force</info>
+EOF
+        );
     }
 
     public function testCommandCannotRemoveUndefinedTask(): void

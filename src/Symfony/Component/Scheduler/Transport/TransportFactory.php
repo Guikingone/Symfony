@@ -12,6 +12,7 @@
 namespace Symfony\Component\Scheduler\Transport;
 
 use Symfony\Component\Scheduler\Exception\InvalidArgumentException;
+use Symfony\Component\Scheduler\SchedulePolicy\SchedulePolicyOrchestratorInterface;
 use Symfony\Component\Serializer\SerializerInterface;
 
 /**
@@ -31,22 +32,22 @@ final class TransportFactory
         $this->factories = $transportsFactories;
     }
 
-    public function createTransport(string $dsn, array $options, SerializerInterface $serializer): TransportInterface
+    public function createTransport(string $dsn, array $options, SerializerInterface $serializer, SchedulePolicyOrchestratorInterface $schedulePolicyOrchestrator): TransportInterface
     {
         foreach ($this->factories as $factory) {
             if ($factory->support($dsn, $options)) {
-                return $factory->createTransport(Dsn::fromString($dsn), $options, $serializer);
+                return $factory->createTransport(Dsn::fromString($dsn), $options, $serializer, $schedulePolicyOrchestrator);
             }
         }
 
         // Help the user to select Symfony packages based on DSN.
         $packageSuggestion = '';
 
-        if ('redis://' === substr($dsn, 0, 5)) {
+        if ('redis' === substr($dsn, 0, 5)) {
             $packageSuggestion = ' Run "composer require symfony/redis-scheduler" to install Redis transport.';
         }
 
-        if ('doctrine://' === substr($dsn, 0, 8)) {
+        if ('doctrine' === substr($dsn, 0, 8)) {
             $packageSuggestion = ' Run "composer require symfony/doctrine-scheduler" to install Doctrine transport.';
         }
 

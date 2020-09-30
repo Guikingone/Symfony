@@ -20,7 +20,7 @@ use Symfony\Component\Scheduler\Event\WorkerStartedEvent;
  *
  * @experimental in 5.3
  */
-final class StopWorkerOnSigtermSignalSubscriber implements EventSubscriberInterface
+final class StopWorkerOnSignalSubscriber implements EventSubscriberInterface
 {
     public function onWorkerStarted(WorkerStartedEvent $event): void
     {

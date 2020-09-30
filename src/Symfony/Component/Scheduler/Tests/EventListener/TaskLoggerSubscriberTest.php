@@ -32,42 +32,40 @@ final class TaskLoggerSubscriberTest extends TestCase
     public function testScheduledTaskCanBeRetrieved(): void
     {
         $task = $this->createMock(TaskInterface::class);
-        $task->expects(self::once())->method('getName')->willReturn('foo');
 
         $event = new TaskScheduledEvent($task);
 
         $subscriber = new TaskLoggerSubscriber();
-        $subscriber->onTaskScheduled($event);
+        $subscriber->onTask($event);
 
-        static::assertNotEmpty($subscriber->getTasks());
-        static::assertSame($task, $subscriber->getTasks()['scheduledTasks']->get('foo'));
+        static::assertNotEmpty($subscriber->getEvents()->getEvents());
+        static::assertNotEmpty($subscriber->getEvents()->getScheduledTaskEvents());
+        static::assertEmpty($subscriber->getEvents()->getFailedTaskEvents());
+        static::assertEmpty($subscriber->getEvents()->getExecutedTaskEvents());
+        static::assertEmpty($subscriber->getEvents()->getUnscheduledTaskEvents());
     }
 
     public function testExecutedTaskCanBeRetrieved(): void
     {
         $task = $this->createMock(TaskInterface::class);
-        $task->expects(self::once())->method('getName')->willReturn('foo');
 
         $event = new TaskExecutedEvent($task);
 
         $subscriber = new TaskLoggerSubscriber();
-        $subscriber->onTaskExecuted($event);
+        $subscriber->onTask($event);
 
-        static::assertNotEmpty($subscriber->getTasks());
-        static::assertSame($task, $subscriber->getTasks()['executedTasks']->get('foo'));
+        static::assertNotEmpty($subscriber->getEvents()->getEvents());
     }
 
     public function testFailedTaskCanBeRetrieved(): void
     {
         $task = $this->createMock(TaskInterface::class);
-        $task->expects(self::once())->method('getName')->willReturn('foo');
 
         $event = new TaskFailedEvent($task);
 
         $subscriber = new TaskLoggerSubscriber();
-        $subscriber->onTaskFailed($event);
+        $subscriber->onTask($event);
 
-        static::assertNotEmpty($subscriber->getTasks());
-        static::assertSame($task, $subscriber->getTasks()['failedTasks']->get('foo'));
+        static::assertNotEmpty($subscriber->getEvents()->getEvents());
     }
 }

@@ -54,11 +54,23 @@ final class RetryFailedTaskCommand extends Command
     protected function configure(): void
     {
         $this
+            ->setDescription('Retries one or more tasks from the failed tasks')
             ->setDefinition([
                 new InputArgument('name', InputArgument::REQUIRED, 'Specific task name(s) to retry'),
                 new InputOption('force', 'f', InputOption::VALUE_NONE, 'Force the operation without confirmation'),
             ])
-            ->setDescription('Retries one or more tasks from the failed tasks')
+            ->setHelp(<<<'EOF'
+The <info>%command.name%</info> command retry a failed task.
+
+    <info>php %command.full_name%</info>
+
+Use the task-name argument to specify the task to retry:
+    <info>php %command.full_name% <task-name></info>
+
+Use the --force option to force the task retry without asking for confirmation:
+    <info>php %command.full_name% <task-name> --force</info>
+EOF
+            )
         ;
     }
 

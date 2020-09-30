@@ -18,14 +18,16 @@ use Symfony\Component\Scheduler\Command\ListTasksCommand;
 use Symfony\Component\Scheduler\Command\RebootSchedulerCommand;
 use Symfony\Component\Scheduler\Command\RemoveFailedTaskCommand;
 use Symfony\Component\Scheduler\Command\RetryFailedTaskCommand;
-use Symfony\Component\Scheduler\EventListener\StopWorkerOnSigtermSignalSubscriber;
+use Symfony\Component\Scheduler\EventListener\StopWorkerOnSignalSubscriber;
 use Symfony\Component\Scheduler\EventListener\TaskExecutionSubscriber;
 use Symfony\Component\Scheduler\EventListener\TaskLoggerSubscriber;
 use Symfony\Component\Scheduler\SchedulePolicy\BatchPolicy;
 use Symfony\Component\Scheduler\SchedulePolicy\DeadlinePolicy;
 use Symfony\Component\Scheduler\SchedulePolicy\ExecutionDurationPolicy;
 use Symfony\Component\Scheduler\SchedulePolicy\FirstInFirstOutPolicy;
+use Symfony\Component\Scheduler\SchedulePolicy\FirstInLastOutPolicy;
 use Symfony\Component\Scheduler\SchedulePolicy\IdlePolicy;
+use Symfony\Component\Scheduler\SchedulePolicy\MemoryUsagePolicy;
 use Symfony\Component\Scheduler\SchedulePolicy\NicePolicy;
 use Symfony\Component\Scheduler\SchedulePolicy\RoundRobinPolicy;
 use Symfony\Component\Scheduler\SchedulePolicy\SchedulePolicyOrchestrator;
@@ -130,16 +132,28 @@ return static function (ContainerConfigurator $container): void {
 
         ->set('scheduler.batch_policy', BatchPolicy::class)
             ->tag('scheduler.schedule_policy')
+
         ->set('scheduler.deadline_policy', DeadlinePolicy::class)
             ->tag('scheduler.schedule_policy')
+
         ->set('scheduler.execution_duration_policy', ExecutionDurationPolicy::class)
             ->tag('scheduler.schedule_policy')
-        ->set('scheduler.first_in_first_ou_policy', FirstInFirstOutPolicy::class)
+
+        ->set('scheduler.first_in_first_out_policy', FirstInFirstOutPolicy::class)
             ->tag('scheduler.schedule_policy')
+
+        ->set('scheduler.first_in_last_out_policy', FirstInLastOutPolicy::class)
+            ->tag('scheduler.schedule_policy')
+
         ->set('scheduler.idle_policy', IdlePolicy::class)
             ->tag('scheduler.schedule_policy')
+
+        ->set('scheduler.memory_policy', MemoryUsagePolicy::class)
+            ->tag('scheduler.schedule_policy')
+
         ->set('scheduler.nice_policy', NicePolicy::class)
             ->tag('scheduler.schedule_policy')
+
         ->set('scheduler.round_robin_policy', RoundRobinPolicy::class)
             ->tag('scheduler.schedule_policy')
 
@@ -214,7 +228,7 @@ return static function (ContainerConfigurator $container): void {
         ->set('scheduler.task_logger.subscriber', TaskLoggerSubscriber::class)
             ->tag('kernel.event_subscriber')
 
-        ->set('scheduler.stop_worker_sigterm_signal.subscriber', StopWorkerOnSigtermSignalSubscriber::class)
+        ->set('scheduler.stop_worker_signal.subscriber', StopWorkerOnSignalSubscriber::class)
             ->tag('kernel.event_subscriber')
 
         // Tracker

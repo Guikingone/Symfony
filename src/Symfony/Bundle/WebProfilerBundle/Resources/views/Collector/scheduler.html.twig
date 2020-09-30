@@ -3,9 +3,11 @@
 {% import _self as helper %}
 
 {% block toolbar %}
-    {% set scheduled_tasks = collector.tasks['scheduledTasks'] %}
+    {% set events = collector.events %}
 
-    {% if scheduled_tasks|length > 0 %}
+    {% if events|length > 0 %}
+        {% set scheduled_tasks = events.scheduledTaskEvents %}
+
         {% set icon %}
             {{ include('@WebProfiler/Icon/scheduler.svg') }}
             <span class="sf-toolbar-value">
@@ -21,50 +23,67 @@
                 </span>
             </div>
 
+            <b>{{ 'Unscheduled tasks' }}</b>
+            <span class="sf-toolbar-status">
+                    {{- events.unscheduledTaskEvents|length -}}
+                </span>
+            </div>
+
             <div class="sf-toolbar-info-piece">
                 <b>{{ 'Executed tasks' }}</b>
                 <span class="sf-toolbar-status">
-                    {{- collector.tasks['executedTasks']|length -}}
+                    {{- events.executedTaskEvents|length -}}
                 </span>
             </div>
 
             <div class="sf-toolbar-info-piece">
                 <b>{{ 'Failed tasks' }}</b>
                 <span class="sf-toolbar-status">
-                    {{- collector.tasks['failedTasks']|length -}}
+                    {{- events.failedTaskEvents|length -}}
+                </span>
+            </div>
+
+            <div class="sf-toolbar-info-piece">
+                <b>{{ 'Queued tasks' }}</b>
+                <span class="sf-toolbar-status">
+                    {{- events.queuedTaskEvents|length -}}
                 </span>
             </div>
         {% endset %}
 
-        {{ include('@WebProfiler/Profiler/toolbar_item.html.twig', {link: false}) }}
+        {{ include('@WebProfiler/Profiler/toolbar_item.html.twig', {link: true}) }}
     {% endif %}
 {% endblock %}
 
 {% block menu %}
-    <span class="label {{ collector.tasks['scheduledTasks'] is empty ? ' disabled' }}">
-        <span class="icon">{{ include('@WebProfiler/Icon/scheduler.svg') }}</span>
-        <strong>Tasks</strong>
+    <span class="label {{ collector.events.scheduledTaskEvents is not empty ? '' : 'disabled' }}">
+        <span class="icon">
+            {{ include('@WebProfiler/Icon/scheduler.svg') }}
+        </span>
+        <strong>{{- 'Scheduled tasks' -}}</strong>
     </span>
 {% endblock %}
 
 {% block panel %}
     {% import _self as helper %}
 
-    <h2>Tasks</h2>
+    {% set scheduled_tasks = collector.events.scheduledTaskEvents %}
 
-    {% if collector.tasks['scheduledTasks'] is empty %}
+    <h2>{{- 'Tasks' -}}</h2>
+
+    {% if scheduled_tasks is empty %}
         <div class="empty">
-            <p>No tasks have been scheduled.</p>
+            <p>{{ 'No tasks have been scheduled.' }}</p>
         </div>
     {% else %}
         <div class="sf-tabs tasks-scheduler">
             <div class="tab">
                 {% set tasks = collector.scheduledTasks %}
-                <h3 class="tab-title">All<span class="badge">{{ tasks|length }}</span></h3>
+                <h3 class="tab-title">{{- 'All' -}}<span class="badge">{{- tasks|length -}}</span></h3>
 
                 <div class="tab-content">
-                    <p class="text-muted">Ordered list of scheduled tasks across all your schedulers</p>
-                    {{ helper.render_scheduler_tasks(tasks, true) }}
+                    <p class="text-muted">{{ 'Scheduled tasks' }}</p>
+                    {{ helper.render_scheduled_tasks(tasks, true) }}
                 </div>
             </div>
 
@@ -81,3 +100,7 @@
         </div>
     {% endif %}
 {% endblock %}
+
+{% macro render_scheduled_tasks(tasks) %}
+
+{% endmacro %}

@@ -15,6 +15,7 @@ use PHPUnit\Framework\TestCase;
 use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Component\Scheduler\Exception\InvalidArgumentException;
 use Symfony\Component\Scheduler\Exception\LogicException;
+use Symfony\Component\Scheduler\SchedulePolicy\SchedulePolicyOrchestratorInterface;
 use Symfony\Component\Scheduler\Serializer\TaskNormalizer;
 use Symfony\Component\Scheduler\Task\NullTask;
 use Symfony\Component\Scheduler\Task\ShellTask;
@@ -48,8 +49,8 @@ final class FilesystemTransportTest extends TestCase
      */
     protected function tearDown(): void
     {
-        $this->filesystem->remove(__DIR__.'/assets/bar.json');
-        $this->filesystem->remove(__DIR__.'/assets/foo.json');
+        $this->filesystem->remove(__DIR__.'/assets/_symfony_scheduler_/bar.json');
+        $this->filesystem->remove(__DIR__.'/assets/_symfony_scheduler_/foo.json');
     }
 
     public function testTaskListCanBeRetrieved(): void
@@ -62,7 +63,31 @@ final class FilesystemTransportTest extends TestCase
         $transport = new FilesystemTransport(__DIR__.'/assets', [], $serializer);
 
         $transport->create(new NullTask('bar'));
-        static::assertTrue($this->filesystem->exists(__DIR__.'/assets/bar.json'));
+        static::assertTrue($this->filesystem->exists(__DIR__.'/assets/_symfony_scheduler_/bar.json'));
+
+        $list = $transport->list();
+        static::assertNotEmpty($list);
+        static::assertInstanceOf(NullTask::class, $list->get('bar'));
+    }
+
+    public function testTaskListCanBeRetrievedAndSorted(): void
+    {
+        $objectNormalizer = new ObjectNormalizer();
+
+        $serializer = new Serializer([new TaskNormalizer(new DateTimeNormalizer(), new DateTimeZoneNormalizer(), new DateIntervalNormalizer(), $objectNormalizer), $objectNormalizer], [new JsonEncoder()]);
+        $objectNormalizer->setSerializer($serializer);
+
+        $task = new NullTask('bar');
+
+        $schedulePolicyOrchestrator = $this->createMock(SchedulePolicyOrchestratorInterface::class);
+        $schedulePolicyOrchestrator->expects(self::once())->method('sort')->willReturn([$task]);
+
+        $transport = new FilesystemTransport(__DIR__.'/assets', [
+            'execution_mode' => 'first_in_first_out',
+        ], $serializer, $schedulePolicyOrchestrator);
+
+        $transport->create($task);
+        static::assertTrue($this->filesystem->exists(__DIR__.'/assets/_symfony_scheduler_/bar.json'));
 
         $list = $transport->list();
         static::assertNotEmpty($list);
@@ -93,7 +118,7 @@ final class FilesystemTransportTest extends TestCase
         $transport = new FilesystemTransport(__DIR__.'/assets', [], $serializer);
 
         $transport->create(new NullTask('foo'));
-        static::assertTrue($this->filesystem->exists(__DIR__.'/assets/foo.json'));
+        static::assertTrue($this->filesystem->exists(__DIR__.'/assets/_symfony_scheduler_/foo.json'));
 
         $task = $transport->get('foo');
         static::assertInstanceOf(NullTask::class, $task);
@@ -111,10 +136,10 @@ final class FilesystemTransportTest extends TestCase
         $transport = new FilesystemTransport(__DIR__.'/assets', [], $serializer);
 
         $transport->create(new NullTask('foo'));
-        static::assertTrue($this->filesystem->exists(__DIR__.'/assets/foo.json'));
+        static::assertTrue($this->filesystem->exists(__DIR__.'/assets/_symfony_scheduler_/foo.json'));
     }
 
-    public function testTaskCannotBeUpdatedWithUndefinedTask(): void
+    public function testTaskCannotBeUpdatedWhenUndefinedButShouldBeCreated(): void
     {
         $objectNormalizer = new ObjectNormalizer();
 
@@ -123,9 +148,12 @@ final class FilesystemTransportTest extends TestCase
 
         $transport = new FilesystemTransport(__DIR__.'/assets', [], $serializer);
 
-        static::expectException(InvalidArgumentException::class);
-        static::expectExceptionMessage('The "foo" task does not exist');
         $transport->update('foo', new NullTask('foo'));
+
+        $task = $transport->get('foo');
+        static::assertInstanceOf(NullTask::class, $task);
+        static::assertSame('foo', $task->getName());
+        static::assertSame('* * * * *', $task->getExpression());
     }
 
     public function testTaskCanBeUpdated(): void
@@ -138,7 +166,7 @@ final class FilesystemTransportTest extends TestCase
         $transport = new FilesystemTransport(__DIR__.'/assets', [], $serializer);
 
         $transport->create(new ShellTask('foo', ['echo', 'Symfony']));
-        static::assertTrue($this->filesystem->exists(__DIR__.'/assets/foo.json'));
+        static::assertTrue($this->filesystem->exists(__DIR__.'/assets/_symfony_scheduler_/foo.json'));
 
         $task = $transport->get('foo');
         $task->setExpression('0 * * * *');
@@ -148,7 +176,7 @@ final class FilesystemTransportTest extends TestCase
         $updatedTask = $transport->get('foo');
 
         static::assertSame('0 * * * *', $updatedTask->getExpression());
-        static::assertTrue($this->filesystem->exists(__DIR__.'/assets/foo.json'));
+        static::assertTrue($this->filesystem->exists(__DIR__.'/assets/_symfony_scheduler_/foo.json'));
     }
 
     public function testTaskCanBeDeleted(): void
@@ -161,10 +189,10 @@ final class FilesystemTransportTest extends TestCase
         $transport = new FilesystemTransport(__DIR__.'/assets', [], $serializer);
 
         $transport->create(new NullTask('foo'));
-        static::assertTrue($this->filesystem->exists(__DIR__.'/assets/foo.json'));
+        static::assertTrue($this->filesystem->exists(__DIR__.'/assets/_symfony_scheduler_/foo.json'));
 
         $transport->delete('foo');
-        static::assertFalse($this->filesystem->exists(__DIR__.'/assets/foo.json'));
+        static::assertFalse($this->filesystem->exists(__DIR__.'/assets/_symfony_scheduler_/foo.json'));
     }
 
     public function testTaskCannotBePausedTwice(): void
@@ -177,7 +205,7 @@ final class FilesystemTransportTest extends TestCase
         $transport = new FilesystemTransport(__DIR__.'/assets', [], $serializer);
 
         $transport->create(new NullTask('foo'));
-        static::assertTrue($this->filesystem->exists(__DIR__.'/assets/foo.json'));
+        static::assertTrue($this->filesystem->exists(__DIR__.'/assets/_symfony_scheduler_/foo.json'));
 
         $transport->pause('foo');
 
@@ -199,7 +227,7 @@ final class FilesystemTransportTest extends TestCase
         $transport = new FilesystemTransport(__DIR__.'/assets', [], $serializer);
 
         $transport->create(new NullTask('foo'));
-        static::assertTrue($this->filesystem->exists(__DIR__.'/assets/foo.json'));
+        static::assertTrue($this->filesystem->exists(__DIR__.'/assets/_symfony_scheduler_/foo.json'));
 
         $transport->pause('foo');
 
@@ -217,7 +245,7 @@ final class FilesystemTransportTest extends TestCase
         $transport = new FilesystemTransport(__DIR__.'/assets', [], $serializer);
 
         $transport->create(new NullTask('foo'));
-        static::assertTrue($this->filesystem->exists(__DIR__.'/assets/foo.json'));
+        static::assertTrue($this->filesystem->exists(__DIR__.'/assets/_symfony_scheduler_/foo.json'));
 
         $transport->pause('foo');
 
@@ -243,7 +271,7 @@ final class FilesystemTransportTest extends TestCase
         $transport = new FilesystemTransport(__DIR__.'/assets', [], $serializer);
 
         $transport->create(new NullTask('foo'));
-        static::assertTrue($this->filesystem->exists(__DIR__.'/assets/foo.json'));
+        static::assertTrue($this->filesystem->exists(__DIR__.'/assets/_symfony_scheduler_/foo.json'));
 
         $transport->pause('foo');
 
@@ -267,11 +295,11 @@ final class FilesystemTransportTest extends TestCase
 
         $transport->create(new NullTask('foo'));
         $transport->create(new NullTask('bar'));
-        static::assertTrue($this->filesystem->exists(__DIR__.'/assets/foo.json'));
-        static::assertTrue($this->filesystem->exists(__DIR__.'/assets/bar.json'));
+        static::assertTrue($this->filesystem->exists(__DIR__.'/assets/_symfony_scheduler_/foo.json'));
+        static::assertTrue($this->filesystem->exists(__DIR__.'/assets/_symfony_scheduler_/bar.json'));
 
         $transport->clear();
-        static::assertFalse($this->filesystem->exists(__DIR__.'/assets/foo.json'));
-        static::assertFalse($this->filesystem->exists(__DIR__.'/assets/bar.json'));
+        static::assertFalse($this->filesystem->exists(__DIR__.'/assets/_symfony_scheduler_/foo.json'));
+        static::assertFalse($this->filesystem->exists(__DIR__.'/assets/_symfony_scheduler_/bar.json'));
      }
 }

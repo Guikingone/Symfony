@@ -15,6 +15,7 @@ use Doctrine\Common\Collections\Criteria;
 use Doctrine\DBAL\Connection as DBALConnection;
 use Doctrine\DBAL\DBALException;
 use Doctrine\DBAL\Driver\Result;
+use Doctrine\DBAL\ParameterType;
 use Doctrine\DBAL\Query\QueryBuilder;
 use Doctrine\DBAL\Schema\Schema;
 use Doctrine\DBAL\Schema\Synchronizer\SingleDatabaseSynchronizer;
@@ -22,7 +23,6 @@ use Doctrine\DBAL\Types\Types;
 use Symfony\Component\Scheduler\Exception\InvalidArgumentException;
 use Symfony\Component\Scheduler\Exception\LogicException;
 use Symfony\Component\Scheduler\Exception\TransportException;
-use Symfony\Component\Scheduler\ExecutionModeOrchestrator;
 use Symfony\Component\Scheduler\Task\AbstractTask;
 use Symfony\Component\Scheduler\Task\TaskInterface;
 use Symfony\Component\Scheduler\Task\TaskList;
@@ -46,17 +46,15 @@ final class Connection implements ConnectionInterface
     private $configuration;
     private $driverConnection;
     private $schemaSynchronizer;
-    private $orchestrator;
     private $serializer;
 
     public function __construct(array $configuration, DBALConnection $driverConnection, SerializerInterface $serializer)
     {
         $this->configuration = array_replace_recursive(static::DEFAULT_OPTIONS, $configuration);
         $this->driverConnection = $driverConnection;
-        $this->schemaSynchronizer = $schemaSynchronizer ?? new SingleDatabaseSynchronizer($this->driverConnection);
+        $this->schemaSynchronizer = new SingleDatabaseSynchronizer($this->driverConnection);
         $this->autoSetup = $this->configuration['auto_setup'];
         $this->serializer = $serializer;
-        $this->orchestrator = new ExecutionModeOrchestrator($configuration['execution_mode'] ?? ExecutionModeOrchestrator::FIFO);
     }
 
     /**
@@ -67,11 +65,10 @@ final class Connection implements ConnectionInterface
         $taskList = new TaskList();
 
         try {
-            $statement = $this->executeQuery($this->createQueryBuilder()->orderBy('task_name', Criteria::ASC)->getSQL());
+            $query = $this->createQueryBuilder()->orderBy('task_name', Criteria::ASC);
+
+            $statement = $this->executeQuery($query->getSQL());
             $tasks = $statement instanceof Result ? $statement->fetchAllAssociative() : $statement->fetchAll();
-            if (empty($tasks)) {
-                return $taskList;
-            }
 
             foreach ($tasks as $task) {
                 $taskList->add($this->serializer->deserialize($task['body'], TaskInterface::class, 'json'));
@@ -86,16 +83,20 @@ final class Connection implements ConnectionInterface
     /**
      * {@inheritdoc}
      */
-    public function get(string $taskName): TaskInterface
+    public function get(string $name): TaskInterface
     {
         try {
-            $queryBuilder = $this->createQueryBuilder()->where('t.task_name = ?');
+            $queryBuilder = $this->createQueryBuilder()
+                ->where('t.task_name = :name')
+                ->setParameter(':name', $name, ParameterType::STRING)
+            ;
 
             $statement = $this->executeQuery(
                 $queryBuilder->getSQL(). ' ' .$this->driverConnection->getDatabasePlatform()->getReadLockSQL(),
-                [$taskName],
-                [Types::STRING]
+                $queryBuilder->getParameters(),
+                $queryBuilder->getParameterTypes()
             );
+
             $data = $statement instanceof Result ? $statement->fetchAssociative() : $statement->fetch();
             if (empty($data) || false === $data) {
                 throw new LogicException('The desired task cannot be found.');
@@ -117,24 +118,35 @@ final class Connection implements ConnectionInterface
                 $existingTaskQuery = $this->createQueryBuilder()
                     ->select('COUNT(t.id) as task_count')
                     ->where('t.task_name = :name')
-                    ->setParameter(':name', $task->getName())
-                    ->getSQL()
+                    ->setParameter(':name', $task->getName(), ParameterType::STRING)
                 ;
 
-                $existingTasks = $connection->executeQuery($existingTaskQuery, ['name' => $task->getName()], [Types::STRING])->fetch();
+                $existingTasks = $connection->executeQuery(
+                    $existingTaskQuery->getSQL(). ' ' .$connection->getDatabasePlatform()->getReadLockSQL(),
+                    $existingTaskQuery->getParameters(),
+                    $existingTaskQuery->getParameterTypes()
+                )->fetch();
                 if ('0' !== $existingTasks['task_count']) {
                     throw new LogicException(sprintf('The task "%s" has already been scheduled!', $task->getName()));
                 }
 
-                $affectedRows = $connection->insert($this->configuration['table_name'], [
-                    'task_name' => $task->getName(),
-                    'body' => $this->serializer->serialize($task, 'json'),
-                ], [
-                    'task_name' => Types::STRING,
-                    'body' => Types::TEXT,
-                ]);
+                $query = $this->createQueryBuilder()
+                    ->insert($this->configuration['table_name'])
+                    ->values([
+                        'task_name' => ':name',
+                        'body' => ':body',
+                    ])
+                    ->setParameter(':name', $task->getName(), ParameterType::STRING)
+                    ->setParameter(':body', $this->serializer->serialize($task, 'json'), ParameterType::STRING)
+                ;
 
-                if (1 !== $affectedRows) {
+                $statement = $connection->executeQuery(
+                    $query->getSQL(). ' ' .$connection->getDatabasePlatform()->getWriteLockSQL(),
+                    $query->getParameters(),
+                    $query->getParameterTypes()
+                );
+
+                if (1 !== $statement->rowCount()) {
                     throw new DBALException('The given data are invalid.');
                 }
             });
@@ -148,15 +160,7 @@ final class Connection implements ConnectionInterface
      */
     public function update(string $taskName, TaskInterface $updatedTask): void
     {
-        $data = $this->serializer->serialize($updatedTask, 'json');
-
-        $this->prepareUpdate($taskName, [
-            'task_name' => $updatedTask->getName(),
-            'body' => $data,
-        ], [
-            Types::STRING,
-            Types::TEXT,
-        ]);
+        $this->prepareUpdate($taskName, $updatedTask);
     }
 
     /**
@@ -198,16 +202,23 @@ final class Connection implements ConnectionInterface
     /**
      * {@inheritdoc}
      */
-    public function delete(string $taskName): void
+    public function delete(string $name): void
     {
         try {
-            $this->driverConnection->transactional(function (DBALConnection $connection) use ($taskName): void {
-                $affectedRows = $connection->delete($this->configuration['table_name'],
-                    ['task_name' => $taskName],
-                    ['task_name' => Types::STRING]
+            $this->driverConnection->transactional(function (DBALConnection $connection) use ($name): void {
+                $query = $this->createQueryBuilder()
+                    ->delete($this->configuration['table_name'])
+                    ->where('task_name = :name')
+                    ->setParameter(':name', $name, ParameterType::STRING)
+                ;
+
+                $statement = $connection->executeQuery(
+                    $query->getSQL(),
+                    $query->getParameters(),
+                    $query->getParameterTypes()
                 );
 
-                if (1 !== $affectedRows) {
+                if (1 !== $statement->rowCount()) {
                     throw new InvalidArgumentException('The given identifier is invalid.');
                 }
             });
@@ -223,7 +234,9 @@ final class Connection implements ConnectionInterface
     {
         try {
             $this->driverConnection->transactional(function (DBALConnection $connection): void {
-                $connection->exec(sprintf('DELETE FROM %s', $this->configuration['table_name']));
+                $deleteQuery = $this->createQueryBuilder()->delete($this->configuration['table_name']);
+
+                $connection->executeQuery($deleteQuery->getSQL());
             });
         } catch (\Throwable $throwable) {
             throw new TransportException($throwable->getMessage());
@@ -250,16 +263,25 @@ final class Connection implements ConnectionInterface
         $this->addTableToSchema($schema);
     }
 
-    private function prepareUpdate(string $taskName, array $data, array $identifiers = []): void
+    private function prepareUpdate(string $name, TaskInterface $task): void
     {
         try {
-            $this->driverConnection->transactional(function (DBALConnection $connection) use ($taskName, $data, $identifiers): void {
-                $affectedRows = $connection->update($this->configuration['table_name'], $data, ['task_name' => $taskName], $identifiers ?? [
-                    'task_name' => Types::STRING,
-                    'body' => Types::ARRAY,
-                ]);
+            $this->driverConnection->transactional(function (DBALConnection $connection) use ($name, $task): void {
+                $query = $this->createQueryBuilder()
+                    ->update($this->configuration['table_name'])
+                    ->set('body', ':body')
+                    ->where('task_name = :name')
+                    ->setParameter(':name', $name, ParameterType::STRING)
+                    ->setParameter(':body', $this->serializer->serialize($task, 'json'), ParameterType::STRING)
+                ;
 
-                if (1 !== $affectedRows) {
+                $statement = $connection->executeQuery(
+                    $query->getSQL(),
+                    $query->getParameters(),
+                    $query->getParameterTypes()
+                );
+
+                if (1 !== $statement->rowCount()) {
                     throw new DBALException('The given task cannot be updated as the identifier or the body is invalid');
                 }
             });

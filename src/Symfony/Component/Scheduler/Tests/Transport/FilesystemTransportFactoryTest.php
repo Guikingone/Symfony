@@ -12,7 +12,7 @@
 namespace Symfony\Component\Scheduler\Tests\Transport;
 
 use PHPUnit\Framework\TestCase;
-use Symfony\Component\Filesystem\Filesystem;
+use Symfony\Component\Scheduler\SchedulePolicy\SchedulePolicyOrchestrator;
 use Symfony\Component\Scheduler\Transport\Dsn;
 use Symfony\Component\Scheduler\Transport\FilesystemTransport;
 use Symfony\Component\Scheduler\Transport\FilesystemTransportFactory;
@@ -26,9 +26,7 @@ final class FilesystemTransportFactoryTest extends TestCase
 {
     public function testFactoryCanSupportTransport(): void
     {
-        $filesystem = $this->createMock(Filesystem::class);
-
-        $factory = new FilesystemTransportFactory($filesystem);
+        $factory = new FilesystemTransportFactory();
 
         static::assertFalse($factory->support('test://'));
         static::assertTrue($factory->support('fs://'));
@@ -38,11 +36,10 @@ final class FilesystemTransportFactoryTest extends TestCase
 
     public function testFactoryCanCreateTransport(): void
     {
-        $filesystem = $this->createMock(Filesystem::class);
         $serializer = $this->createMock(SerializerInterface::class);
 
-        $factory = new FilesystemTransportFactory($filesystem);
-        $transport = $factory->createTransport(Dsn::fromString('fs://first_in_first_out'), [], $serializer);
+        $factory = new FilesystemTransportFactory();
+        $transport = $factory->createTransport(Dsn::fromString('fs://first_in_first_out'), [], $serializer, new SchedulePolicyOrchestrator([]));
 
         static::assertInstanceOf(TransportInterface::class, $transport);
         static::assertInstanceOf(FilesystemTransport::class, $transport);
@@ -50,11 +47,10 @@ final class FilesystemTransportFactoryTest extends TestCase
 
     public function testFactoryCanCreateTransportWithSpecificPath(): void
     {
-        $filesystem = $this->createMock(Filesystem::class);
         $serializer = $this->createMock(SerializerInterface::class);
 
-        $factory = new FilesystemTransportFactory($filesystem);
-        $transport = $factory->createTransport(Dsn::fromString('fs://first_in_first_out?path=/srv/app'), [], $serializer);
+        $factory = new FilesystemTransportFactory();
+        $transport = $factory->createTransport(Dsn::fromString('fs://first_in_first_out?path=/srv/app'), [], $serializer, new SchedulePolicyOrchestrator([]));
 
         static::assertInstanceOf(TransportInterface::class, $transport);
         static::assertInstanceOf(FilesystemTransport::class, $transport);
