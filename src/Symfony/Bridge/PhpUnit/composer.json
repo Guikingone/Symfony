@@ -41,6 +41,9 @@
     ],
     "minimum-stability": "dev",
     "extra": {
+        "branch-alias": {
+            "dev-master": "dev-master"
+        },
         "thanks": {
             "name": "phpunit/phpunit",
             "url": "https://github.com/sebastianbergmann/phpunit"
