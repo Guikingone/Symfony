@@ -16,5 +16,6 @@ $container->loadFromExtension('framework', [
         'transport' => [
             'dsn' => 'memory://first_in_first_out',
         ],
+        'lock_store' => 'lock.default',
     ],
 ]);

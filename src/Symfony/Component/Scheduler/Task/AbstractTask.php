@@ -461,9 +461,9 @@ abstract class AbstractTask implements TaskInterface
         return $this->options['timezone'];
     }
 
-    public function setTimezone(\DateTimeZone $timezone = null): TaskInterface
+    public function setTimezone(string $timezone = null): TaskInterface
     {
-        $this->options['timezone'] = $timezone;
+        $this->options['timezone'] = null !== $timezone ? new \DateTimeZone($timezone) : null;
 
         return $this;
     }

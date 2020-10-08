@@ -54,7 +54,7 @@ final class SchedulerDataCollector extends DataCollector implements LateDataColl
 
     public function getEvents(): TaskEventList
     {
-        return $this->events;
+        return $this->data['events'];
     }
 
     /**

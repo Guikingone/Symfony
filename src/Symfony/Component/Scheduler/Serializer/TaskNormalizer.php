@@ -26,7 +26,6 @@ use Symfony\Component\Scheduler\Worker\Worker;
 use Symfony\Component\Serializer\Normalizer\AbstractNormalizer;
 use Symfony\Component\Serializer\Normalizer\DateIntervalNormalizer;
 use Symfony\Component\Serializer\Normalizer\DateTimeNormalizer;
-use Symfony\Component\Serializer\Normalizer\DateTimeZoneNormalizer;
 use Symfony\Component\Serializer\Normalizer\DenormalizerInterface;
 use Symfony\Component\Serializer\Normalizer\NormalizerInterface;
 use Symfony\Component\Serializer\Normalizer\ObjectNormalizer;
@@ -52,14 +51,12 @@ final class TaskNormalizer implements DenormalizerInterface, NormalizerInterface
     ];
 
     private $dateTimeNormalizer;
-    private $dateTimeZoneNormalizer;
     private $dateIntervalNormalizer;
     private $objectNormalizer;
 
-    public function __construct(DateTimeNormalizer $dateTimeNormalizer, DateTimeZoneNormalizer $dateTimeZoneNormalizer, DateIntervalNormalizer $dateIntervalNormalizer, ObjectNormalizer $objectNormalizer)
+    public function __construct(DateTimeNormalizer $dateTimeNormalizer, DateIntervalNormalizer $dateIntervalNormalizer, ObjectNormalizer $objectNormalizer)
     {
         $this->dateTimeNormalizer = $dateTimeNormalizer;
-        $this->dateTimeZoneNormalizer = $dateTimeZoneNormalizer;
         $this->dateIntervalNormalizer = $dateIntervalNormalizer;
         $this->objectNormalizer = $objectNormalizer;
     }
@@ -91,7 +88,7 @@ final class TaskNormalizer implements DenormalizerInterface, NormalizerInterface
         }
 
         if ($object instanceof CallbackTask) {
-            $data = $this->objectNormalizer->normalize($object, $format, array_merge($context, [
+            $data = $this->objectNormalizer->normalize($object, $format, array_merge($context, $dateAttributesContext, [
                 AbstractNormalizer::CALLBACKS => [
                     'callback' => function ($innerObject, $outerObject, string $attributeName, string $format = null, array $context = []): array {
                         return [
@@ -253,10 +250,6 @@ final class TaskNormalizer implements DenormalizerInterface, NormalizerInterface
             if (\in_array($attributeName, self::DATEINTERVAL_ATTRIBUTES) && null !== $value) {
                 $body[$attributeName] = $this->dateIntervalNormalizer->denormalize($value, \DateInterval::class);
             }
-
-            if ('timezone' === $attributeName && null !== $value) {
-                $body[$attributeName] = $this->dateTimeZoneNormalizer->denormalize($value, \DateTimeZone::class);
-            }
         }
 
         return $body;
@@ -282,7 +275,7 @@ final class TaskNormalizer implements DenormalizerInterface, NormalizerInterface
                 'lastExecution' => $dateAttributesCallback,
                 'scheduledAt' => $dateAttributesCallback,
                 'timezone' => function ($innerObject, $outerObject, string $attributeName, string $format = null, array $context = []) {
-                    return $innerObject instanceof \DateTimeZone ? $this->dateTimeZoneNormalizer->normalize($innerObject, $format, $context) : null;
+                    return $innerObject instanceof \DateTimeZone ? $innerObject->getName() : null;
                 },
             ],
         ];

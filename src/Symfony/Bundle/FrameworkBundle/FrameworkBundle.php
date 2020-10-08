@@ -157,7 +157,7 @@ class FrameworkBundle extends Bundle
         $this->addCompilerPassIfExists($container, MessengerPass::class);
         $this->addCompilerPassIfExists($container, HttpClientPass::class);
         $this->addCompilerPassIfExists($container, AddAutoMappingConfigurationPass::class);
-        $this->addCompilerPassIfExists($container, SchedulerPass::class);
+        $this->addCompilerPassIfExists($container, SchedulerPass::class, PassConfig::TYPE_AFTER_REMOVING);
         $container->addCompilerPass(new RegisterReverseContainerPass(true));
         $container->addCompilerPass(new RegisterReverseContainerPass(false), PassConfig::TYPE_AFTER_REMOVING);
         $container->addCompilerPass(new RemoveUnusedSessionMarshallingHandlerPass());

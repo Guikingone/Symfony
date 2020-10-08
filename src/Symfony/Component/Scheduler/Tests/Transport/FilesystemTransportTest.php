@@ -24,7 +24,6 @@ use Symfony\Component\Scheduler\Transport\FilesystemTransport;
 use Symfony\Component\Serializer\Encoder\JsonEncoder;
 use Symfony\Component\Serializer\Normalizer\DateIntervalNormalizer;
 use Symfony\Component\Serializer\Normalizer\DateTimeNormalizer;
-use Symfony\Component\Serializer\Normalizer\DateTimeZoneNormalizer;
 use Symfony\Component\Serializer\Normalizer\ObjectNormalizer;
 use Symfony\Component\Serializer\Serializer;
 
@@ -57,12 +56,15 @@ final class FilesystemTransportTest extends TestCase
     {
         $objectNormalizer = new ObjectNormalizer();
 
-        $serializer = new Serializer([new TaskNormalizer(new DateTimeNormalizer(), new DateTimeZoneNormalizer(), new DateIntervalNormalizer(), $objectNormalizer), $objectNormalizer], [new JsonEncoder()]);
+        $serializer = new Serializer([new TaskNormalizer(new DateTimeNormalizer(), new DateIntervalNormalizer(), $objectNormalizer), $objectNormalizer], [new JsonEncoder()]);
         $objectNormalizer->setSerializer($serializer);
 
         $transport = new FilesystemTransport(__DIR__.'/assets', [], $serializer);
 
-        $transport->create(new NullTask('bar'));
+        $task = new NullTask('bar');
+        $task->setScheduledAt(new \DateTimeImmutable());
+
+        $transport->create($task);
         static::assertTrue($this->filesystem->exists(__DIR__.'/assets/_symfony_scheduler_/bar.json'));
 
         $list = $transport->list();
@@ -74,7 +76,7 @@ final class FilesystemTransportTest extends TestCase
     {
         $objectNormalizer = new ObjectNormalizer();
 
-        $serializer = new Serializer([new TaskNormalizer(new DateTimeNormalizer(), new DateTimeZoneNormalizer(), new DateIntervalNormalizer(), $objectNormalizer), $objectNormalizer], [new JsonEncoder()]);
+        $serializer = new Serializer([new TaskNormalizer(new DateTimeNormalizer(), new DateIntervalNormalizer(), $objectNormalizer), $objectNormalizer], [new JsonEncoder()]);
         $objectNormalizer->setSerializer($serializer);
 
         $task = new NullTask('bar');
@@ -98,7 +100,7 @@ final class FilesystemTransportTest extends TestCase
     {
         $objectNormalizer = new ObjectNormalizer();
 
-        $serializer = new Serializer([new TaskNormalizer(new DateTimeNormalizer(), new DateTimeZoneNormalizer(), new DateIntervalNormalizer(), $objectNormalizer), $objectNormalizer], [new JsonEncoder()]);
+        $serializer = new Serializer([new TaskNormalizer(new DateTimeNormalizer(), new DateIntervalNormalizer(), $objectNormalizer), $objectNormalizer], [new JsonEncoder()]);
         $objectNormalizer->setSerializer($serializer);
 
         $transport = new FilesystemTransport(__DIR__.'/assets', [], $serializer);
@@ -112,7 +114,7 @@ final class FilesystemTransportTest extends TestCase
     {
         $objectNormalizer = new ObjectNormalizer();
 
-        $serializer = new Serializer([new TaskNormalizer(new DateTimeNormalizer(), new DateTimeZoneNormalizer(), new DateIntervalNormalizer(), $objectNormalizer), $objectNormalizer], [new JsonEncoder()]);
+        $serializer = new Serializer([new TaskNormalizer(new DateTimeNormalizer(), new DateIntervalNormalizer(), $objectNormalizer), $objectNormalizer], [new JsonEncoder()]);
         $objectNormalizer->setSerializer($serializer);
 
         $transport = new FilesystemTransport(__DIR__.'/assets', [], $serializer);
@@ -130,7 +132,7 @@ final class FilesystemTransportTest extends TestCase
     {
         $objectNormalizer = new ObjectNormalizer();
 
-        $serializer = new Serializer([new TaskNormalizer(new DateTimeNormalizer(), new DateTimeZoneNormalizer(), new DateIntervalNormalizer(), $objectNormalizer), $objectNormalizer], [new JsonEncoder()]);
+        $serializer = new Serializer([new TaskNormalizer(new DateTimeNormalizer(), new DateIntervalNormalizer(), $objectNormalizer), $objectNormalizer], [new JsonEncoder()]);
         $objectNormalizer->setSerializer($serializer);
 
         $transport = new FilesystemTransport(__DIR__.'/assets', [], $serializer);
@@ -143,7 +145,7 @@ final class FilesystemTransportTest extends TestCase
     {
         $objectNormalizer = new ObjectNormalizer();
 
-        $serializer = new Serializer([new TaskNormalizer(new DateTimeNormalizer(), new DateTimeZoneNormalizer(), new DateIntervalNormalizer(), $objectNormalizer), $objectNormalizer], [new JsonEncoder()]);
+        $serializer = new Serializer([new TaskNormalizer(new DateTimeNormalizer(), new DateIntervalNormalizer(), $objectNormalizer), $objectNormalizer], [new JsonEncoder()]);
         $objectNormalizer->setSerializer($serializer);
 
         $transport = new FilesystemTransport(__DIR__.'/assets', [], $serializer);
@@ -160,7 +162,7 @@ final class FilesystemTransportTest extends TestCase
     {
         $objectNormalizer = new ObjectNormalizer();
 
-        $serializer = new Serializer([new TaskNormalizer(new DateTimeNormalizer(), new DateTimeZoneNormalizer(), new DateIntervalNormalizer(), $objectNormalizer), $objectNormalizer], [new JsonEncoder()]);
+        $serializer = new Serializer([new TaskNormalizer(new DateTimeNormalizer(), new DateIntervalNormalizer(), $objectNormalizer), $objectNormalizer], [new JsonEncoder()]);
         $objectNormalizer->setSerializer($serializer);
 
         $transport = new FilesystemTransport(__DIR__.'/assets', [], $serializer);
@@ -183,7 +185,7 @@ final class FilesystemTransportTest extends TestCase
     {
         $objectNormalizer = new ObjectNormalizer();
 
-        $serializer = new Serializer([new TaskNormalizer(new DateTimeNormalizer(), new DateTimeZoneNormalizer(), new DateIntervalNormalizer(), $objectNormalizer), $objectNormalizer], [new JsonEncoder()]);
+        $serializer = new Serializer([new TaskNormalizer(new DateTimeNormalizer(), new DateIntervalNormalizer(), $objectNormalizer), $objectNormalizer], [new JsonEncoder()]);
         $objectNormalizer->setSerializer($serializer);
 
         $transport = new FilesystemTransport(__DIR__.'/assets', [], $serializer);
@@ -199,7 +201,7 @@ final class FilesystemTransportTest extends TestCase
     {
         $objectNormalizer = new ObjectNormalizer();
 
-        $serializer = new Serializer([new TaskNormalizer(new DateTimeNormalizer(), new DateTimeZoneNormalizer(), new DateIntervalNormalizer(), $objectNormalizer), $objectNormalizer], [new JsonEncoder()]);
+        $serializer = new Serializer([new TaskNormalizer(new DateTimeNormalizer(), new DateIntervalNormalizer(), $objectNormalizer), $objectNormalizer], [new JsonEncoder()]);
         $objectNormalizer->setSerializer($serializer);
 
         $transport = new FilesystemTransport(__DIR__.'/assets', [], $serializer);
@@ -221,7 +223,7 @@ final class FilesystemTransportTest extends TestCase
     {
         $objectNormalizer = new ObjectNormalizer();
 
-        $serializer = new Serializer([new TaskNormalizer(new DateTimeNormalizer(), new DateTimeZoneNormalizer(), new DateIntervalNormalizer(), $objectNormalizer), $objectNormalizer], [new JsonEncoder()]);
+        $serializer = new Serializer([new TaskNormalizer(new DateTimeNormalizer(), new DateIntervalNormalizer(), $objectNormalizer), $objectNormalizer], [new JsonEncoder()]);
         $objectNormalizer->setSerializer($serializer);
 
         $transport = new FilesystemTransport(__DIR__.'/assets', [], $serializer);
@@ -239,7 +241,7 @@ final class FilesystemTransportTest extends TestCase
     {
         $objectNormalizer = new ObjectNormalizer();
 
-        $serializer = new Serializer([new TaskNormalizer(new DateTimeNormalizer(), new DateTimeZoneNormalizer(), new DateIntervalNormalizer(), $objectNormalizer), $objectNormalizer], [new JsonEncoder()]);
+        $serializer = new Serializer([new TaskNormalizer(new DateTimeNormalizer(), new DateIntervalNormalizer(), $objectNormalizer), $objectNormalizer], [new JsonEncoder()]);
         $objectNormalizer->setSerializer($serializer);
 
         $transport = new FilesystemTransport(__DIR__.'/assets', [], $serializer);
@@ -265,7 +267,7 @@ final class FilesystemTransportTest extends TestCase
     {
         $objectNormalizer = new ObjectNormalizer();
 
-        $serializer = new Serializer([new TaskNormalizer(new DateTimeNormalizer(), new DateTimeZoneNormalizer(), new DateIntervalNormalizer(), $objectNormalizer), $objectNormalizer], [new JsonEncoder()]);
+        $serializer = new Serializer([new TaskNormalizer(new DateTimeNormalizer(), new DateIntervalNormalizer(), $objectNormalizer), $objectNormalizer], [new JsonEncoder()]);
         $objectNormalizer->setSerializer($serializer);
 
         $transport = new FilesystemTransport(__DIR__.'/assets', [], $serializer);
@@ -288,7 +290,7 @@ final class FilesystemTransportTest extends TestCase
     {
         $objectNormalizer = new ObjectNormalizer();
 
-        $serializer = new Serializer([new TaskNormalizer(new DateTimeNormalizer(), new DateTimeZoneNormalizer(), new DateIntervalNormalizer(), $objectNormalizer), $objectNormalizer], [new JsonEncoder()]);
+        $serializer = new Serializer([new TaskNormalizer(new DateTimeNormalizer(), new DateIntervalNormalizer(), $objectNormalizer), $objectNormalizer], [new JsonEncoder()]);
         $objectNormalizer->setSerializer($serializer);
 
         $transport = new FilesystemTransport(__DIR__.'/assets', [], $serializer);

@@ -14,6 +14,7 @@ namespace Symfony\Component\Scheduler\Tests\Test\Constraint;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Scheduler\Event\TaskEventList;
 use Symfony\Component\Scheduler\Event\TaskFailedEvent;
+use Symfony\Component\Scheduler\Task\FailedTask;
 use Symfony\Component\Scheduler\Task\TaskInterface;
 use Symfony\Component\Scheduler\Test\Constraint\TaskFailed;
 
@@ -35,8 +36,10 @@ final class TaskFailedTest extends TestCase
     {
         $task = $this->createMock(TaskInterface::class);
 
+        $failedTask = new FailedTask($task, 'error');
+
         $list = new TaskEventList();
-        $list->addEvent(new TaskFailedEvent($task));
+        $list->addEvent(new TaskFailedEvent($failedTask));
 
         $constraint = new TaskFailed(1);
 

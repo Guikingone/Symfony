@@ -17,6 +17,7 @@ use Symfony\Component\Scheduler\Event\TaskExecutedEvent;
 use Symfony\Component\Scheduler\Event\TaskFailedEvent;
 use Symfony\Component\Scheduler\Event\TaskScheduledEvent;
 use Symfony\Component\Scheduler\Event\TaskUnscheduledEvent;
+use Symfony\Component\Scheduler\Task\FailedTask;
 use Symfony\Component\Scheduler\Task\TaskInterface;
 
 /**
@@ -74,12 +75,14 @@ final class TaskEventListTest extends TestCase
     public function testFailedTaskEventsCanBeRetrieved(): void
     {
         $task = $this->createMock(TaskInterface::class);
+        $failedTask = new FailedTask($task, 'error');
 
         $list = new TaskEventList();
-        $list->addEvent(new TaskFailedEvent($task));
+        $list->addEvent(new TaskFailedEvent($failedTask));
 
         static::assertNotEmpty($list->getFailedTaskEvents());
-        static::assertSame($task, $list->getFailedTaskEvents()[0]->getTask());
+        static::assertSame($failedTask, $list->getFailedTaskEvents()[0]->getTask());
+        static::assertSame($task, $list->getFailedTaskEvents()[0]->getTask()->getTask());
     }
 
     public function testQueuedTaskEventsCanBeRetrieved(): void

@@ -11,7 +11,7 @@
 
 namespace Symfony\Component\Scheduler\Event;
 
-use Symfony\Component\Scheduler\Task\TaskInterface;
+use Symfony\Component\Scheduler\Task\FailedTask;
 use Symfony\Contracts\EventDispatcher\Event;
 
 /**
@@ -23,12 +23,12 @@ final class TaskFailedEvent extends Event implements TaskEventInterface
 {
     private $task;
 
-    public function __construct(TaskInterface $task)
+    public function __construct(FailedTask $task)
     {
         $this->task = $task;
     }
 
-    public function getTask(): TaskInterface
+    public function getTask(): FailedTask
     {
         return $this->task;
     }

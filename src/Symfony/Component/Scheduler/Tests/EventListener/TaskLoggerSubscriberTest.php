@@ -16,6 +16,7 @@ use Symfony\Component\Scheduler\Event\TaskExecutedEvent;
 use Symfony\Component\Scheduler\Event\TaskFailedEvent;
 use Symfony\Component\Scheduler\Event\TaskScheduledEvent;
 use Symfony\Component\Scheduler\EventListener\TaskLoggerSubscriber;
+use Symfony\Component\Scheduler\Task\FailedTask;
 use Symfony\Component\Scheduler\Task\TaskInterface;
 
 /**
@@ -61,7 +62,9 @@ final class TaskLoggerSubscriberTest extends TestCase
     {
         $task = $this->createMock(TaskInterface::class);
 
-        $event = new TaskFailedEvent($task);
+        $failedTask = new FailedTask($task, 'error');
+
+        $event = new TaskFailedEvent($failedTask);
 
         $subscriber = new TaskLoggerSubscriber();
         $subscriber->onTask($event);

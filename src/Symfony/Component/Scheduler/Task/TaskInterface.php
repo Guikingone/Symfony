@@ -140,7 +140,7 @@ interface TaskInterface
 
     public function getTimezone(): ?\DateTimeZone;
 
-    public function setTimezone(\DateTimeZone $timezone = null): TaskInterface;
+    public function setTimezone(string $timezone = null): TaskInterface;
 
     public function isTracked(): bool;
 

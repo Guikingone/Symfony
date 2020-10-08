@@ -21,10 +21,8 @@ return static function (ContainerConfigurator $container): void {
             ->args([
                 service('doctrine'),
             ])
-            ->tag('scheduler.transport_factory')
-
+//
         // Redis
         ->set('scheduler.transport_factory.redis', RedisTransportFactory::class)
-            ->tag('scheduler.transport_factory')
     ;
 };

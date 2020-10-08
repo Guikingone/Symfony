@@ -13,7 +13,6 @@ namespace Symfony\Component\Scheduler\DependencyInjection;
 
 use Symfony\Component\DependencyInjection\Compiler\CompilerPassInterface;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
-use Symfony\Component\DependencyInjection\Reference;
 
 /**
  * @author Guillaume Loulier <contact@guillaumeloulier.fr>
@@ -22,11 +21,11 @@ use Symfony\Component\DependencyInjection\Reference;
  */
 final class SchedulerPass implements CompilerPassInterface
 {
-    private $schedulerEntryPointTag;
+    private $schedulerTaskTag;
 
-    public function __construct(string $schedulerEntryPointTag = 'scheduler.entry_point')
+    public function __construct(string $schedulerTaskTag = 'scheduler.task')
     {
-        $this->schedulerEntryPointTag = $schedulerEntryPointTag;
+        $this->schedulerTaskTag = $schedulerTaskTag;
     }
 
     /**
@@ -34,13 +33,13 @@ final class SchedulerPass implements CompilerPassInterface
      */
     public function process(ContainerBuilder $container)
     {
-        $this->registerSchedulerEntrypoint($container);
+        $this->removeSchedulerTasks($container);
     }
 
-    private function registerSchedulerEntryPoint(ContainerBuilder $container): void
+    private function removeSchedulerTasks(ContainerBuilder $container): void
     {
-        foreach ($container->findTaggedServiceIds($this->schedulerEntryPointTag) as $entryPointsId => $tags) {
-            $container->getDefinition($entryPointsId)->addMethodCall('schedule', [new Reference('scheduler.scheduler')]);
+        foreach ($container->findTaggedServiceIds($this->schedulerTaskTag) as $task) {
+            $container->removeDefinition($task);
         }
     }
 }

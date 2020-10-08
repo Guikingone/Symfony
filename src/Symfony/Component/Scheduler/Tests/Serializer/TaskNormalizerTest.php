@@ -27,7 +27,6 @@ use Symfony\Component\Scheduler\Task\TaskInterface;
 use Symfony\Component\Serializer\Encoder\JsonEncoder;
 use Symfony\Component\Serializer\Normalizer\DateIntervalNormalizer;
 use Symfony\Component\Serializer\Normalizer\DateTimeNormalizer;
-use Symfony\Component\Serializer\Normalizer\DateTimeZoneNormalizer;
 use Symfony\Component\Serializer\Normalizer\ObjectNormalizer;
 use Symfony\Component\Serializer\Serializer;
 
@@ -38,7 +37,7 @@ final class TaskNormalizerTest extends TestCase
 {
     public function testNormalizerSupportNormalize(): void
     {
-        $normalizer = new TaskNormalizer(new DateTimeNormalizer(), new DateTimeZoneNormalizer(), new DateIntervalNormalizer(), new ObjectNormalizer());
+        $normalizer = new TaskNormalizer(new DateTimeNormalizer(), new DateIntervalNormalizer(), new ObjectNormalizer());
 
         static::assertFalse($normalizer->supportsNormalization(new FooTask()));
         static::assertTrue($normalizer->supportsNormalization(new NullTask('foo')));
@@ -48,7 +47,7 @@ final class TaskNormalizerTest extends TestCase
     {
         $objectNormalizer = new ObjectNormalizer();
 
-        $serializer = new Serializer([new TaskNormalizer(new DateTimeNormalizer(), new DateTimeZoneNormalizer(), new DateIntervalNormalizer(), $objectNormalizer), $objectNormalizer], [new JsonEncoder()]);
+        $serializer = new Serializer([new TaskNormalizer(new DateTimeNormalizer(), new DateIntervalNormalizer(), $objectNormalizer), $objectNormalizer], [new JsonEncoder()]);
         $objectNormalizer->setSerializer($serializer);
 
         $data = $serializer->normalize(new NullTask('foo'));
@@ -74,7 +73,7 @@ final class TaskNormalizerTest extends TestCase
 
     public function testCallbackTaskCannotBeDenormalizedWithClosure(): void
     {
-        $normalizer = new TaskNormalizer(new DateTimeNormalizer(), new DateTimeZoneNormalizer(), new DateIntervalNormalizer(), new ObjectNormalizer());
+        $normalizer = new TaskNormalizer(new DateTimeNormalizer(), new DateIntervalNormalizer(), new ObjectNormalizer());
 
         static::expectException(InvalidArgumentException::class);
         static::expectExceptionMessage('CallbackTask with closure cannot be sent to external transport, consider executing it thanks to "Symfony\Component\Scheduler\Worker\Worker::execute()"');
@@ -87,7 +86,7 @@ final class TaskNormalizerTest extends TestCase
     {
         $objectNormalizer = new ObjectNormalizer();
 
-        $serializer = new Serializer([new TaskNormalizer(new DateTimeNormalizer(), new DateTimeZoneNormalizer(), new DateIntervalNormalizer(), $objectNormalizer), $objectNormalizer], [new JsonEncoder()]);
+        $serializer = new Serializer([new TaskNormalizer(new DateTimeNormalizer(), new DateIntervalNormalizer(), $objectNormalizer), $objectNormalizer], [new JsonEncoder()]);
         $objectNormalizer->setSerializer($serializer);
 
         $task = new CallbackTask('foo', [new CallbackTaskCallable(), 'echo']);
@@ -103,7 +102,7 @@ final class TaskNormalizerTest extends TestCase
     {
         $objectNormalizer = new ObjectNormalizer();
 
-        $serializer = new Serializer([new TaskNormalizer(new DateTimeNormalizer(), new DateTimeZoneNormalizer(), new DateIntervalNormalizer(), $objectNormalizer), $objectNormalizer], [new JsonEncoder()]);
+        $serializer = new Serializer([new TaskNormalizer(new DateTimeNormalizer(), new DateIntervalNormalizer(), $objectNormalizer), $objectNormalizer], [new JsonEncoder()]);
         $objectNormalizer->setSerializer($serializer);
 
         $data = $serializer->serialize(new CommandTask('foo', 'cache:clear', [], ['--env' => 'test']), 'json');
@@ -118,7 +117,7 @@ final class TaskNormalizerTest extends TestCase
     {
         $objectNormalizer = new ObjectNormalizer();
 
-        $serializer = new Serializer([new TaskNormalizer(new DateTimeNormalizer(), new DateTimeZoneNormalizer(), new DateIntervalNormalizer(), $objectNormalizer), $objectNormalizer], [new JsonEncoder()]);
+        $serializer = new Serializer([new TaskNormalizer(new DateTimeNormalizer(), new DateIntervalNormalizer(), $objectNormalizer), $objectNormalizer], [new JsonEncoder()]);
         $objectNormalizer->setSerializer($serializer);
 
         $data = $serializer->serialize(new CommandTask('foo', 'cache:clear', [], ['--env' => 'test']), 'json');
@@ -141,24 +140,29 @@ final class TaskNormalizerTest extends TestCase
     {
         $objectNormalizer = new ObjectNormalizer();
 
-        $serializer = new Serializer([new TaskNormalizer(new DateTimeNormalizer(), new DateTimeZoneNormalizer(), new DateIntervalNormalizer(), $objectNormalizer), $objectNormalizer], [new JsonEncoder()]);
+        $serializer = new Serializer([new TaskNormalizer(new DateTimeNormalizer(), new DateIntervalNormalizer(), $objectNormalizer), $objectNormalizer], [new JsonEncoder()]);
         $objectNormalizer->setSerializer($serializer);
 
-        $data = $serializer->serialize(new NullTask('foo'), 'json');
+        $task = new NullTask('foo');
+        $task->setScheduledAt(new \DateTimeImmutable());
+
+        $data = $serializer->serialize($task, 'json');
         $task = $serializer->deserialize($data, TaskInterface::class, 'json');
 
         static::assertInstanceOf(NullTask::class, $task);
         static::assertSame('* * * * *', $task->getExpression());
+        static::assertInstanceOf(\DateTimeImmutable::class, $task->getScheduledAt());
     }
 
     public function testShellTaskCanBeDenormalized(): void
     {
         $objectNormalizer = new ObjectNormalizer();
 
-        $serializer = new Serializer([new TaskNormalizer(new DateTimeNormalizer(), new DateTimeZoneNormalizer(), new DateIntervalNormalizer(), $objectNormalizer), $objectNormalizer], [new JsonEncoder()]);
+        $serializer = new Serializer([new TaskNormalizer(new DateTimeNormalizer(), new DateIntervalNormalizer(), $objectNormalizer), $objectNormalizer], [new JsonEncoder()]);
         $objectNormalizer->setSerializer($serializer);
 
         $task = new ShellTask('foo', ['echo', 'Symfony']);
+        $task->setScheduledAt(new \DateTimeImmutable());
 
         $data = $serializer->serialize($task, 'json');
         $task = $serializer->deserialize($data, TaskInterface::class, 'json');
@@ -173,7 +177,7 @@ final class TaskNormalizerTest extends TestCase
     {
         $objectNormalizer = new ObjectNormalizer();
 
-        $serializer = new Serializer([new TaskNormalizer(new DateTimeNormalizer(), new DateTimeZoneNormalizer(), new DateIntervalNormalizer(), $objectNormalizer), $objectNormalizer], [new JsonEncoder()]);
+        $serializer = new Serializer([new TaskNormalizer(new DateTimeNormalizer(), new DateIntervalNormalizer(), $objectNormalizer), $objectNormalizer], [new JsonEncoder()]);
         $objectNormalizer->setSerializer($serializer);
 
         $task = new ShellTask('foo', ['echo', 'Symfony']);
@@ -182,7 +186,7 @@ final class TaskNormalizerTest extends TestCase
         $task->setExecutionStartTime(new \DateTimeImmutable());
         $task->setLastExecution(new \DateTimeImmutable());
         $task->setExecutionEndTime(new \DateTimeImmutable());
-        $task->setTimezone(new \DateTimeZone('UTC'));
+        $task->setTimezone('UTC');
 
         $data = $serializer->serialize($task, 'json');
         $task = $serializer->deserialize($data, TaskInterface::class, 'json');
@@ -203,7 +207,7 @@ final class TaskNormalizerTest extends TestCase
     {
         $objectNormalizer = new ObjectNormalizer();
 
-        $serializer = new Serializer([new TaskNormalizer(new DateTimeNormalizer(), new DateTimeZoneNormalizer(), new DateIntervalNormalizer(), $objectNormalizer), $objectNormalizer], [new JsonEncoder()]);
+        $serializer = new Serializer([new TaskNormalizer(new DateTimeNormalizer(), new DateIntervalNormalizer(), $objectNormalizer), $objectNormalizer], [new JsonEncoder()]);
         $objectNormalizer->setSerializer($serializer);
 
         $data = $serializer->serialize(new MessengerTask('foo', new FooMessage()), 'json');
@@ -219,7 +223,7 @@ final class TaskNormalizerTest extends TestCase
     {
         $objectNormalizer = new ObjectNormalizer();
 
-        $serializer = new Serializer([new TaskNormalizer(new DateTimeNormalizer(), new DateTimeZoneNormalizer(), new DateIntervalNormalizer(), $objectNormalizer), $objectNormalizer], [new JsonEncoder()]);
+        $serializer = new Serializer([new TaskNormalizer(new DateTimeNormalizer(), new DateIntervalNormalizer(), $objectNormalizer), $objectNormalizer], [new JsonEncoder()]);
         $objectNormalizer->setSerializer($serializer);
 
         $data = $serializer->serialize(new NotificationTask('foo', new Notification('bar'), new Recipient('test@test.fr', '')), 'json');
@@ -235,7 +239,7 @@ final class TaskNormalizerTest extends TestCase
     {
         $objectNormalizer = new ObjectNormalizer();
 
-        $serializer = new Serializer([new TaskNormalizer(new DateTimeNormalizer(), new DateTimeZoneNormalizer(), new DateIntervalNormalizer(), $objectNormalizer), $objectNormalizer], [new JsonEncoder()]);
+        $serializer = new Serializer([new TaskNormalizer(new DateTimeNormalizer(), new DateIntervalNormalizer(), $objectNormalizer), $objectNormalizer], [new JsonEncoder()]);
         $objectNormalizer->setSerializer($serializer);
 
         $data = $serializer->serialize(new NotificationTask('foo', new Notification('bar'), new Recipient('test@test.fr', ''), new Recipient('foo@test.fr', '')), 'json');
@@ -254,7 +258,7 @@ final class TaskNormalizerTest extends TestCase
     {
         $objectNormalizer = new ObjectNormalizer();
 
-        $serializer = new Serializer([new TaskNormalizer(new DateTimeNormalizer(), new DateTimeZoneNormalizer(), new DateIntervalNormalizer(), $objectNormalizer), $objectNormalizer], [new JsonEncoder()]);
+        $serializer = new Serializer([new TaskNormalizer(new DateTimeNormalizer(), new DateIntervalNormalizer(), $objectNormalizer), $objectNormalizer], [new JsonEncoder()]);
         $objectNormalizer->setSerializer($serializer);
 
         $data = $serializer->serialize(new HttpTask('foo','https://symfony.com', 'GET'), 'json');

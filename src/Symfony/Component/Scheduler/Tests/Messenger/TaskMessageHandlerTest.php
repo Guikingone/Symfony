@@ -29,6 +29,7 @@ final class TaskMessageHandlerTest extends TestCase
         $task = new ShellTask('foo', ['echo', 'Symfony']);
         $task->setScheduledAt(new \DateTimeImmutable());
         $task->setExpression('* * * * *');
+        $task->setTimezone('UTC');
 
         $worker = $this->createMock(WorkerInterface::class);
         $worker->expects(self::once())->method('isRunning')->willReturn(false);

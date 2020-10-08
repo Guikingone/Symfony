@@ -350,6 +350,91 @@ class ConfigurationTest extends TestCase
         static::assertEquals($processedConfig, $config['scheduler']);
     }
 
+    /**
+     * @dataProvider provideValidSchedulerConfigurationWithOptions
+     */
+    public function testValidSchedulerConfigurationWithOptions(array $schedulerConfig, array $processedConfig): void
+    {
+        $processor = new Processor();
+        $configuration = new Configuration(true);
+        $config = $processor->processConfiguration($configuration, [
+            [
+                'scheduler' => $schedulerConfig,
+            ],
+        ]);
+
+        static::assertArrayHasKey('scheduler', $config);
+        static::assertEquals($processedConfig, $config['scheduler']);
+    }
+
+    /**
+     * @dataProvider provideValidSchedulerConfigurationWithNullTasks
+     */
+    public function testValidSchedulerConfigurationWithNullTasks(array $schedulerConfig, array $processedConfig): void
+    {
+        $processor = new Processor();
+        $configuration = new Configuration(true);
+        $config = $processor->processConfiguration($configuration, [
+            [
+                'scheduler' => $schedulerConfig,
+            ],
+        ]);
+
+        static::assertArrayHasKey('scheduler', $config);
+        static::assertEquals($processedConfig, $config['scheduler']);
+    }
+
+    /**
+     * @dataProvider provideValidSchedulerConfigurationWithShellTasks
+     */
+    public function testValidSchedulerConfigurationWithShellTasks(array $schedulerConfig, array $processedConfig): void
+    {
+        $processor = new Processor();
+        $configuration = new Configuration(true);
+        $config = $processor->processConfiguration($configuration, [
+            [
+                'scheduler' => $schedulerConfig,
+            ],
+        ]);
+
+        static::assertArrayHasKey('scheduler', $config);
+        static::assertEquals($processedConfig, $config['scheduler']);
+    }
+
+    /**
+     * @dataProvider provideValidSchedulerConfigurationWithCommandTasks
+     */
+    public function testValidSchedulerConfigurationWithCommandTasks(array $schedulerConfig, array $processedConfig): void
+    {
+        $processor = new Processor();
+        $configuration = new Configuration(true);
+        $config = $processor->processConfiguration($configuration, [
+            [
+                'scheduler' => $schedulerConfig,
+            ],
+        ]);
+
+        static::assertArrayHasKey('scheduler', $config);
+        static::assertEquals($processedConfig, $config['scheduler']);
+    }
+
+    /**
+     * @dataProvider provideValidSchedulerConfigurationWithHttpTasks
+     */
+    public function testValidSchedulerConfigurationWithHttpTasks(array $schedulerConfig, array $processedConfig): void
+    {
+        $processor = new Processor();
+        $configuration = new Configuration(true);
+        $config = $processor->processConfiguration($configuration, [
+            [
+                'scheduler' => $schedulerConfig,
+            ],
+        ]);
+
+        static::assertArrayHasKey('scheduler', $config);
+        static::assertEquals($processedConfig, $config['scheduler']);
+    }
+
     public function provideValidSchedulerConfiguration(): \Generator
     {
         yield [
@@ -357,14 +442,342 @@ class ConfigurationTest extends TestCase
                 'enabled' => true,
                 'timezone' => 'UTC',
                 'path' => '/_tasks',
-                'transport' => 'memory://first_in_first_out',
+                'transport' => [
+                    'dsn' => 'memory://first_in_first_out',
+                ],
+                'tasks' => [],
                 'lock_store' => null,
             ],
             [
                 'enabled' => true,
                 'timezone' => 'UTC',
                 'path' => '/_tasks',
-                'transport' => 'memory://first_in_first_out',
+                'transport' => [
+                    'dsn' => 'memory://first_in_first_out',
+                    'options' => [
+                        'execution_mode' => 'first_in_first_out',
+                        'path' => '%kernel.project_dir%/var/tasks',
+                    ],
+                ],
+                'tasks' => [],
+                'lock_store' => null,
+            ],
+        ];
+    }
+
+    public function provideValidSchedulerConfigurationWithOptions(): \Generator
+    {
+        yield [
+            [
+                'enabled' => true,
+                'timezone' => 'UTC',
+                'path' => '/_tasks',
+                'transport' => [
+                    'dsn' => 'fs://',
+                    'options' => [
+                        'execution_mode' => 'first_in_first_out',
+                        'path' => '%kernel.project_dir%/var/tasks'
+                    ],
+                ],
+                'tasks' => [],
+                'lock_store' => null,
+            ],
+            [
+                'enabled' => true,
+                'timezone' => 'UTC',
+                'path' => '/_tasks',
+                'transport' => [
+                    'dsn' => 'fs://',
+                    'options' => [
+                        'execution_mode' => 'first_in_first_out',
+                        'path' => '%kernel.project_dir%/var/tasks'
+                    ],
+                ],
+                'tasks' => [],
+                'lock_store' => null,
+            ],
+        ];
+    }
+
+    public function provideValidSchedulerConfigurationWithNullTasks(): \Generator
+    {
+        yield [
+            [
+                'enabled' => true,
+                'timezone' => 'UTC',
+                'path' => '/_tasks',
+                'transport' => [
+                    'dsn' => 'fs://',
+                    'options' => [
+                        'execution_mode' => 'first_in_first_out',
+                        'path' => '%kernel.project_dir%/var/tasks'
+                    ],
+                ],
+                'tasks' => [
+                    [
+                        'name' => 'foo',
+                        'type' => 'null',
+                        'expression' => '* * * * *',
+                    ],
+                    [
+                        'name' => 'bar',
+                        'type' => 'null',
+                        'expression' => '* * * * *',
+                    ],
+                ],
+                'lock_store' => null,
+            ],
+            [
+                'enabled' => true,
+                'timezone' => 'UTC',
+                'path' => '/_tasks',
+                'transport' => [
+                    'dsn' => 'fs://',
+                    'options' => [
+                        'execution_mode' => 'first_in_first_out',
+                        'path' => '%kernel.project_dir%/var/tasks'
+                    ],
+                ],
+                'tasks' => [
+                    [
+                        'name' => 'foo',
+                        'type' => 'null',
+                        'expression' => '* * * * *',
+                        'queued' => false,
+                        'timezone' => 'UTC',
+                        'environment_variables' => [],
+                        'client_options' => [],
+                        'arguments' => [],
+                        'options' => [],
+                    ],
+                    [
+                        'name' => 'bar',
+                        'type' => 'null',
+                        'expression' => '* * * * *',
+                        'queued' => false,
+                        'timezone' => 'UTC',
+                        'environment_variables' => [],
+                        'client_options' => [],
+                        'arguments' => [],
+                        'options' => [],
+                    ],
+                ],
+                'lock_store' => null,
+            ],
+        ];
+    }
+
+    public function provideValidSchedulerConfigurationWithShellTasks(): \Generator
+    {
+        yield [
+            [
+                'enabled' => true,
+                'timezone' => 'UTC',
+                'path' => '/_tasks',
+                'transport' => [
+                    'dsn' => 'fs://',
+                    'options' => [
+                        'execution_mode' => 'first_in_first_out',
+                        'path' => '%kernel.project_dir%/var/tasks'
+                    ],
+                ],
+                'tasks' => [
+                    [
+                        'name' => 'foo',
+                        'type' => 'shell',
+                        'command' => ['ls',  '-al'],
+                        'environment_variables' => [
+                            'APP_ENV' => 'test',
+                        ],
+                        'timeout' => 50,
+                        'expression' => '* * * * *',
+                        'description' => 'A simple ls command',
+                    ],
+                    [
+                        'name' => 'bar',
+                        'type' => 'shell',
+                        'command' => ['ls',  '-l'],
+                        'environment_variables' => [
+                            'APP_ENV' => 'test',
+                        ],
+                        'timeout' => 50,
+                        'expression' => '* * * * *',
+                        'description' => 'A second ls command',
+                    ],
+                ],
+                'lock_store' => null,
+            ],
+            [
+                'enabled' => true,
+                'timezone' => 'UTC',
+                'path' => '/_tasks',
+                'transport' => [
+                    'dsn' => 'fs://',
+                    'options' => [
+                        'execution_mode' => 'first_in_first_out',
+                        'path' => '%kernel.project_dir%/var/tasks'
+                    ],
+                ],
+                'tasks' => [
+                    [
+                        'name' => 'foo',
+                        'type' => 'shell',
+                        'command' => ['ls',  '-al'],
+                        'environment_variables' => [
+                            'APP_ENV' => 'test',
+                        ],
+                        'timeout' => 50,
+                        'expression' => '* * * * *',
+                        'description' => 'A simple ls command',
+                        'queued' => false,
+                        'timezone' => 'UTC',
+                        'client_options' => [],
+                        'arguments' => [],
+                        'options' => [],
+                    ],
+                    [
+                        'name' => 'bar',
+                        'type' => 'shell',
+                        'command' => ['ls',  '-l'],
+                        'environment_variables' => [
+                            'APP_ENV' => 'test',
+                        ],
+                        'timeout' => 50,
+                        'expression' => '* * * * *',
+                        'description' => 'A second ls command',
+                        'queued' => false,
+                        'timezone' => 'UTC',
+                        'client_options' => [],
+                        'arguments' => [],
+                        'options' => [],
+                    ],
+                ],
+                'lock_store' => null,
+            ],
+        ];
+    }
+
+    public function provideValidSchedulerConfigurationWithCommandTasks(): \Generator
+    {
+        yield [
+            [
+                'enabled' => true,
+                'timezone' => 'UTC',
+                'path' => '/_tasks',
+                'transport' => [
+                    'dsn' => 'fs://',
+                    'options' => [
+                        'execution_mode' => 'first_in_first_out',
+                        'path' => '%kernel.project_dir%/var/tasks'
+                    ],
+                ],
+                'tasks' => [
+                    [
+                        'name' => 'foo',
+                        'type' => 'command',
+                        'command' => 'cache:clear',
+                        'options' => [
+                            '--env' => 'test',
+                        ],
+                        'expression' => '*/5 * * * *',
+                        'description' => 'A simple cache clear command',
+                    ],
+                ],
+                'lock_store' => null,
+            ],
+            [
+                'enabled' => true,
+                'timezone' => 'UTC',
+                'path' => '/_tasks',
+                'transport' => [
+                    'dsn' => 'fs://',
+                    'options' => [
+                        'execution_mode' => 'first_in_first_out',
+                        'path' => '%kernel.project_dir%/var/tasks'
+                    ],
+                ],
+                'tasks' => [
+                    [
+                        'name' => 'foo',
+                        'type' => 'command',
+                        'command' => 'cache:clear',
+                        'options' => [
+                            '--env' => 'test',
+                        ],
+                        'arguments' => [],
+                        'expression' => '*/5 * * * *',
+                        'description' => 'A simple cache clear command',
+                        'queued' => false,
+                        'timezone' => 'UTC',
+                        'environment_variables' => [],
+                        'client_options' => [],
+                    ],
+                ],
+                'lock_store' => null,
+            ],
+        ];
+    }
+
+    public function provideValidSchedulerConfigurationWithHttpTasks(): \Generator
+    {
+        yield [
+            [
+                'enabled' => true,
+                'timezone' => 'UTC',
+                'path' => '/_tasks',
+                'transport' => [
+                    'dsn' => 'fs://',
+                    'options' => [
+                        'execution_mode' => 'first_in_first_out',
+                        'path' => '%kernel.project_dir%/var/tasks'
+                    ],
+                ],
+                'tasks' => [
+                    [
+                        'name' => 'foo',
+                        'type' => 'http',
+                        'url' => 'https://symfony.com',
+                        'method' => 'GET',
+                        'client_options' => [
+                            'headers' => [
+                                'Accept' => 'application/json',
+                            ],
+                        ],
+                        'expression' => '*/5 * * * *',
+                    ],
+                ],
+                'lock_store' => null,
+            ],
+            [
+                'enabled' => true,
+                'timezone' => 'UTC',
+                'path' => '/_tasks',
+                'transport' => [
+                    'dsn' => 'fs://',
+                    'options' => [
+                        'execution_mode' => 'first_in_first_out',
+                        'path' => '%kernel.project_dir%/var/tasks'
+                    ],
+                ],
+                'tasks' => [
+                    [
+                        'name' => 'foo',
+                        'type' => 'http',
+                        'url' => 'https://symfony.com',
+                        'method' => 'GET',
+                        'client_options' => [
+                            'headers' => [
+                                'Accept' => 'application/json',
+                            ],
+                        ],
+                        'expression' => '*/5 * * * *',
+                        'queued' => false,
+                        'timezone' => 'UTC',
+                        'environment_variables' => [],
+                        'arguments' => [],
+                        'options' => [],
+                    ],
+                ],
                 'lock_store' => null,
             ],
         ];
@@ -577,6 +990,7 @@ class ConfigurationTest extends TestCase
                 'enabled' => !class_exists(FullStack::class) && class_exists(SchedulerInterface::class),
                 'timezone' => 'UTC',
                 'path' => '/_tasks',
+                'tasks' => [],
                 'lock_store' => null,
             ],
         ];

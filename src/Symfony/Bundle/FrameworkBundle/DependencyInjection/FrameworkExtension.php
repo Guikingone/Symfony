@@ -72,6 +72,7 @@ use Symfony\Component\HttpKernel\CacheWarmer\CacheWarmerInterface;
 use Symfony\Component\HttpKernel\Controller\ArgumentValueResolverInterface;
 use Symfony\Component\HttpKernel\DataCollector\DataCollectorInterface;
 use Symfony\Component\HttpKernel\DependencyInjection\Extension;
+use Symfony\Component\HttpKernel\Kernel;
 use Symfony\Component\Lock\Lock;
 use Symfony\Component\Lock\LockFactory;
 use Symfony\Component\Lock\LockInterface;
@@ -132,10 +133,15 @@ use Symfony\Component\RateLimiter\LimiterInterface;
 use Symfony\Component\RateLimiter\Storage\CacheStorage;
 use Symfony\Component\Routing\Loader\AnnotationDirectoryLoader;
 use Symfony\Component\Routing\Loader\AnnotationFileLoader;
+use Symfony\Component\Scheduler\Bridge\Doctrine\Transport\DoctrineTransportFactory;
 use Symfony\Component\Scheduler\Runner\RunnerInterface;
 use Symfony\Component\Scheduler\SchedulePolicy\PolicyInterface;
+use Symfony\Component\Scheduler\Scheduler;
 use Symfony\Component\Scheduler\SchedulerAwareInterface;
 use Symfony\Component\Scheduler\SchedulerInterface;
+use Symfony\Component\Scheduler\Task\Builder\BuilderInterface;
+use Symfony\Component\Scheduler\Task\TaskBuilderInterface;
+use Symfony\Component\Scheduler\Task\TaskInterface;
 use Symfony\Component\Scheduler\Transport\TransportFactoryInterface as SchedulerTransportFactoryInterface;
 use Symfony\Component\Scheduler\Transport\TransportInterface as SchedulerTransportInterface;
 use Symfony\Component\Security\Core\Security;
@@ -530,15 +536,27 @@ class FrameworkExtension extends Extension
         $container->registerForAutoconfiguration(LoggerAwareInterface::class)
             ->addMethodCall('setLogger', [new Reference('logger')]);
         $container->registerForAutoconfiguration(SchedulerTransportFactoryInterface::class)
-            ->addTag('scheduler.transport_factory');
+            ->addTag('scheduler.transport_factory')
+            ->setPublic(false)
+        ;
         $container->registerForAutoconfiguration(SchedulerTransportInterface::class)
             ->addTag('scheduler.transport');
         $container->registerForAutoconfiguration(RunnerInterface::class)
-            ->addTag('scheduler.runner');
+            ->addTag('scheduler.runner')
+            ->setPublic(false)
+        ;
         $container->registerForAutoconfiguration(SchedulerAwareInterface::class)
-            ->addTag('scheduler.entry_point');
+            ->addTag('scheduler.entry_point')
+            ->addMethodCall('schedule', [new Reference('scheduler.scheduler')])
+        ;
         $container->registerForAutoconfiguration(PolicyInterface::class)
-            ->addTag('scheduler.schedule_policy');
+            ->addTag('scheduler.schedule_policy')
+            ->setPublic(false)
+        ;
+        $container->registerForAutoconfiguration(BuilderInterface::class)
+            ->addTag('scheduler.task_builder')
+            ->setPublic(false)
+        ;
         if (!$container->getParameter('kernel.debug')) {
             // remove tagged iterator argument for resource checkers
             $container->getDefinition('config_cache_factory')->setArguments([]);
@@ -2339,21 +2357,31 @@ class FrameworkExtension extends Extension
         $loader->load('scheduler.php');
         $loader->load('scheduler_bridge.php');
 
+        if (class_exists(DoctrineTransportFactory::class) && $container->hasDefinition('doctrine')) {
+            $container->getDefinition('scheduler.transport_factory.doctrine')->addTag('scheduler.transport_factory');
+        }
+
+        if (class_exists(RedisTransportFactory::class) && class_exists(\Redis::class)) {
+            $container->getDefinition('scheduler.transport_factory.redis')->addTag('scheduler.transport_factory');
+        }
+
         $container->register('scheduler.transport', SchedulerTransportInterface::class)
             ->setFactory([new Reference('scheduler.transport_factory'), 'createTransport'])
             ->setArguments([
-                $config['transport'], [], new Reference('serializer'),
+                $config['transport']['dsn'], $config['transport']['options'], new Reference('serializer'), new Reference('scheduler.schedule_policy_orchestrator'),
             ])
             ->addTag('scheduler.transport')
+            ->setShared(true)
         ;
 
-        $container->register('scheduler.scheduler', SchedulerInterface::class)
+        $container->register('scheduler.scheduler', Scheduler::class)
             ->setArguments([
                 $container->getParameter('scheduler.timezone'),
                 new Reference('scheduler.transport'),
                 new Reference(EventDispatcherInterface::class, ContainerInterface::NULL_ON_INVALID_REFERENCE),
                 new Reference(MessageBusInterface::class, ContainerInterface::NULL_ON_INVALID_REFERENCE),
             ])
+            ->setShared(true)
         ;
 
         $container->setAlias(SchedulerInterface::class, 'scheduler.scheduler');
@@ -2361,8 +2389,21 @@ class FrameworkExtension extends Extension
 
         $container->getDefinition('scheduler.task_subscriber')->setArgument(5, $config['path']);
 
-        if (null !== $config['lock_store'] && 0 !== strpos('@', $config['lock_store'])) {
+        if (null !== $config['lock_store'] && 0 !== strpos('@', $config['lock_store']) && $container->hasDefinition('scheduler.worker')) {
             $container->getDefinition('scheduler.worker')->setArgument(5, new Reference($config['lock_store']));
+        }
+
+        foreach ($config['tasks'] as $taskOptions) {
+            $taskDefinition = $container->register(sprintf('scheduler.%s_task', $taskOptions['name']), TaskInterface::class)
+                ->setFactory([TaskBuilderInterface::class, 'create'])
+                ->setArguments([$taskOptions])
+                ->addTag('scheduler.task')
+                ->setPublic(false)
+            ;
+
+            $container->getDefinition('scheduler.scheduler')
+                ->addMethodCall('schedule', [$taskDefinition])
+            ;
         }
     }
 

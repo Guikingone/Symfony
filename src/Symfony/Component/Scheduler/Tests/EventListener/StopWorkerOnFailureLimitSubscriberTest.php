@@ -16,6 +16,7 @@ use Psr\Log\LoggerInterface;
 use Symfony\Component\Scheduler\Event\TaskFailedEvent;
 use Symfony\Component\Scheduler\Event\WorkerRunningEvent;
 use Symfony\Component\Scheduler\EventListener\StopWorkerOnFailureLimitSubscriber;
+use Symfony\Component\Scheduler\Task\FailedTask;
 use Symfony\Component\Scheduler\Task\TaskInterface;
 use Symfony\Component\Scheduler\Worker\WorkerInterface;
 
@@ -40,7 +41,9 @@ final class StopWorkerOnFailureLimitSubscriberTest extends TestCase
         $worker = $this->createMock(WorkerInterface::class);
         $worker->expects(self::once())->method('stop');
 
-        $taskFailedEvent = new TaskFailedEvent($task);
+        $failedTask = new FailedTask($task, 'error');
+
+        $taskFailedEvent = new TaskFailedEvent($failedTask);
         $workerStartedEvent = new WorkerRunningEvent($worker, true);
 
         $subscriber = new StopWorkerOnFailureLimitSubscriber(0, $logger);

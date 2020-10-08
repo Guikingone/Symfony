@@ -13,6 +13,7 @@ namespace Symfony\Component\Scheduler\Tests\Event;
 
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Scheduler\Event\TaskFailedEvent;
+use Symfony\Component\Scheduler\Task\FailedTask;
 use Symfony\Component\Scheduler\Task\TaskInterface;
 
 /**
@@ -24,8 +25,11 @@ final class TaskFailedEventTest extends TestCase
     {
         $task = $this->createMock(TaskInterface::class);
 
-        $event = new TaskFailedEvent($task);
+        $failedTask = new FailedTask($task, 'error');
 
-        static::assertSame($task, $event->getTask());
+        $event = new TaskFailedEvent($failedTask);
+
+        static::assertSame($failedTask, $event->getTask());
+        static::assertSame($task, $event->getTask()->getTask());
     }
 }

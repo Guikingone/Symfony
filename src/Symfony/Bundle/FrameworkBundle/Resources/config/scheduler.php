@@ -32,6 +32,12 @@ use Symfony\Component\Scheduler\SchedulePolicy\NicePolicy;
 use Symfony\Component\Scheduler\SchedulePolicy\RoundRobinPolicy;
 use Symfony\Component\Scheduler\SchedulePolicy\SchedulePolicyOrchestrator;
 use Symfony\Component\Scheduler\SchedulePolicy\SchedulePolicyOrchestratorInterface;
+use Symfony\Component\Scheduler\Task\Builder\CommandBuilder;
+use Symfony\Component\Scheduler\Task\Builder\HttpBuilder;
+use Symfony\Component\Scheduler\Task\Builder\NullBuilder;
+use Symfony\Component\Scheduler\Task\Builder\ShellBuilder;
+use Symfony\Component\Scheduler\Task\TaskBuilder;
+use Symfony\Component\Scheduler\Task\TaskBuilderInterface;
 use Symfony\Component\Scheduler\Transport\FilesystemTransportFactory;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Scheduler\EventListener\TaskSubscriber;
@@ -87,6 +93,9 @@ return static function (ContainerConfigurator $container): void {
                 service('logger')->nullOnInvalid(),
             ])
             ->tag('console.command')
+            ->tag('monolog.logger', [
+                'channel' => 'scheduler',
+            ])
 
         ->set('scheduler.command.remove_failed', RemoveFailedTaskCommand::class)
             ->args([
@@ -103,6 +112,9 @@ return static function (ContainerConfigurator $container): void {
                 service('logger')->nullOnInvalid(),
             ])
             ->tag('console.command')
+            ->tag('monolog.logger', [
+                'channel' => 'scheduler',
+            ])
 
         ->set('scheduler.application', Application::class)
             ->args([
@@ -156,6 +168,25 @@ return static function (ContainerConfigurator $container): void {
 
         ->set('scheduler.round_robin_policy', RoundRobinPolicy::class)
             ->tag('scheduler.schedule_policy')
+
+        // Builders
+        ->set('scheduler.task_builder', TaskBuilder::class)
+            ->args([
+                tagged_iterator('scheduler.task_builder')
+            ])
+        ->alias(TaskBuilderInterface::class, 'scheduler.task_builder')
+
+        ->set('scheduler.command_task_builder', CommandBuilder::class)
+            ->tag('scheduler.task_builder')
+
+        ->set('scheduler.http_task_builder', HttpBuilder::class)
+            ->tag('scheduler.task_builder')
+
+        ->set('scheduler.null_task_builder', NullBuilder::class)
+            ->tag('scheduler.task_builder')
+
+        ->set('scheduler.shell_task_builder', ShellBuilder::class)
+            ->tag('scheduler.task_builder')
 
         // Runners
         ->set('scheduler.shell_runner', ShellTaskRunner::class)
@@ -213,11 +244,14 @@ return static function (ContainerConfigurator $container): void {
             ->args([
                 service('scheduler.scheduler'),
                 service('scheduler.worker'),
-                service('serializer'),
                 service('event_dispatcher'),
+                service('serializer'),
                 service('logger')->nullOnInvalid(),
             ])
             ->tag('kernel.event_subscriber')
+            ->tag('monolog.logger', [
+                'channel' => 'scheduler',
+            ])
 
         ->set('scheduler.task_execution.subscriber', TaskExecutionSubscriber::class)
             ->args([

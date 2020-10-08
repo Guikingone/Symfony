@@ -23,8 +23,9 @@
                 </span>
             </div>
 
-            <b>{{ 'Unscheduled tasks' }}</b>
-            <span class="sf-toolbar-status">
+            <div class="sf-toolbar-info-piece">
+                <b>{{ 'Unscheduled tasks' }}</b>
+                <span class="sf-toolbar-status">
                     {{- events.unscheduledTaskEvents|length -}}
                 </span>
             </div>
@@ -60,7 +61,7 @@
         <span class="icon">
             {{ include('@WebProfiler/Icon/scheduler.svg') }}
         </span>
-        <strong>{{- 'Scheduled tasks' -}}</strong>
+        <strong>{{- 'Tasks' -}}</strong>
     </span>
 {% endblock %}
 
@@ -68,39 +69,120 @@
     {% import _self as helper %}
 
     {% set scheduled_tasks = collector.events.scheduledTaskEvents %}
+    {% set unscheduled_tasks = collector.events.unscheduledTaskEvents %}
+    {% set executed_tasks = collector.events.executedTaskEvents %}
+    {% set failed_tasks = collector.events.failedTaskEvents %}
+    {% set queued_tasks = collector.events.queuedTaskEvents %}
 
     <h2>{{- 'Tasks' -}}</h2>
 
     {% if scheduled_tasks is empty %}
         <div class="empty">
-            <p>{{ 'No tasks have been scheduled.' }}</p>
+            <p>{{ 'No tasks have been scheduled' }}</p>
         </div>
     {% else %}
         <div class="sf-tabs tasks-scheduler">
             <div class="tab">
-                {% set tasks = collector.scheduledTasks %}
-                <h3 class="tab-title">{{- 'All' -}}<span class="badge">{{- tasks|length -}}</span></h3>
+                <h3 class="tab-title">
+                    {{- 'Scheduled tasks' -}}<span class="badge">{{- scheduled_tasks|length -}}</span>
+                </h3>
 
                 <div class="tab-content">
-                    <p class="text-muted">{{ 'Scheduled tasks' }}</p>
-                    {{ helper.render_scheduled_tasks(tasks, true) }}
+                    {{ helper.render_tasks_list(scheduled_tasks, true) }}
                 </div>
             </div>
 
-            {% for scheduler in collector.scheduler %}
-                {% set tasks = scheduler.tasks %}
-                {% set scheduled_tasks = scheduler.scheduled_tasks %}
-                {% set timezone = scheduler.timezone %}
+            <div class="tab">
+                <h3 class="tab-title">
+                    {{- 'Unscheduled tasks' -}}<span class="badge">{{- unscheduled_tasks|length -}}</span>
+                </h3>
 
                 <div class="tab-content">
-                    <p class="text-muted">Ordered list of scheduled tasks across all your schedulers</p>
-                    {{ helper.render_scheduler_tasks(tasks, true) }}
+                    {% if unscheduled_tasks is empty %}
+                        <div class="empty">
+                            <p>{{ 'No tasks have been unscheduled' }}</p>
+                        </div>
+                        {% else %}
+                            {{ helper.render_tasks_list(unscheduled_tasks, true) }}
+                    {% endif %}
                 </div>
-            {% endfor %}
+            </div>
+
+            <div class="tab">
+                <h3 class="tab-title">
+                    {{- 'Executed tasks' -}}<span class="badge">{{- executed_tasks|length -}}</span>
+                </h3>
+
+                <div class="tab-content">
+                    {% if unscheduled_tasks is empty %}
+                        <div class="empty">
+                            <p>{{ 'No tasks have been executed' }}</p>
+                        </div>
+                    {% else %}
+                        {{ helper.render_tasks_list(executed_tasks, true) }}
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="tab">
+                <h3 class="tab-title">
+                    {{- 'Failed tasks' -}}<span class="badge">{{- failed_tasks|length -}}</span>
+                </h3>
+
+                <div class="tab-content">
+                    {% if unscheduled_tasks is empty %}
+                        <div class="empty">
+                            <p>{{ 'No tasks have failed' }}</p>
+                        </div>
+                    {% else %}
+                        {{ helper.render_tasks_list(failed_tasks, true) }}
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="tab">
+                <h3 class="tab-title">
+                    {{- 'Queued tasks' -}}<span class="badge">{{- queued_tasks|length -}}</span>
+                </h3>
+
+                <div class="tab-content">
+                    {% if unscheduled_tasks is empty %}
+                        <div class="empty">
+                            <p>{{ 'No tasks have been queued' }}</p>
+                        </div>
+                    {% else %}
+                        {{ helper.render_tasks_list(queued_tasks, true) }}
+                    {% endif %}
+                </div>
+            </div>
         </div>
     {% endif %}
 {% endblock %}
 
-{% macro render_scheduled_tasks(tasks) %}
+{% macro render_tasks_list(events) %}
+    {% for event in events %}
+        {% set task = event.task %}
 
+        <table class="{{ class|default('') }}">
+            <thead>
+            <tr>
+                <th scope="col" class="key">{{- 'Name' -}}</th>
+                <th scope="col" class="key">{{- 'Description' -}}</th>
+                <th scope="col" class="key">{{- 'Expression' -}}</th>
+                <th scope="col" class="key">{{- 'Scheduled at' -}}</th>
+                <th scope="col" class="key">{{- 'State' -}}</th>
+            </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <th class="colored font-normal">{{- task.name -}}</th>
+                    <th>{{ task.description ?? 'No description set' }}</th>
+                    <th>{{- task.expression -}}</th>
+                    <th class="colored font-normal">{{ task.scheduledAt|date }}</th>
+                    <th>{{- task.state -}}</th>
+                </tr>
+            </tbody>
+        </table>
+
+    {% endfor %}
 {% endmacro %}

@@ -35,7 +35,6 @@ final class FilesystemTransport implements TransportInterface
     private const TASK_FILENAME_MASK = '%s/_symfony_scheduler_/%s.json';
 
     private $filesystem;
-    private $path;
     private $orchestrator;
     private $options;
     private $serializer;
@@ -43,8 +42,9 @@ final class FilesystemTransport implements TransportInterface
     public function __construct(string $path = null, array $options = [], SerializerInterface $serializer = null, SchedulePolicyOrchestratorInterface $schedulePolicyOrchestrator = null)
     {
         $this->filesystem = new Filesystem();
-        $this->path = null === $path ? sys_get_temp_dir() : $path;
-        $this->options = array_replace_recursive(self::DEFAULT_OPTIONS, $options);
+        $this->options = array_replace_recursive(self::DEFAULT_OPTIONS, array_merge([
+            'path' => null === $path ? sys_get_temp_dir() : $path,
+        ]), $options);
         $this->serializer = $serializer;
         $this->orchestrator = $schedulePolicyOrchestrator;
     }
@@ -58,7 +58,7 @@ final class FilesystemTransport implements TransportInterface
 
         $finder = new Finder();
 
-        $finder->files()->in($this->path)->name('*.json');
+        $finder->files()->in($this->options['path'])->name('*.json');
         foreach ($finder as $task) {
             $tasks[] = $this->get(strtr($task->getFilename(), ['.json' => '']));
         }
@@ -75,7 +75,7 @@ final class FilesystemTransport implements TransportInterface
             throw new InvalidArgumentException(sprintf('The "%s" task does not exist', $taskName));
         }
 
-        return $this->serializer->deserialize(file_get_contents(sprintf(self::TASK_FILENAME_MASK, $this->path, $taskName)), TaskInterface::class, 'json');
+        return $this->serializer->deserialize(file_get_contents(sprintf(self::TASK_FILENAME_MASK, $this->options['path'], $taskName)), TaskInterface::class, 'json');
     }
 
     /**
@@ -88,7 +88,7 @@ final class FilesystemTransport implements TransportInterface
         }
 
         $data = $this->serializer->serialize($task, 'json');
-        $this->filesystem->dumpFile(sprintf(self::TASK_FILENAME_MASK, $this->path, $task->getName()), $data);
+        $this->filesystem->dumpFile(sprintf(self::TASK_FILENAME_MASK, $this->options['path'], $task->getName()), $data);
     }
 
     /**
@@ -102,7 +102,7 @@ final class FilesystemTransport implements TransportInterface
             return;
         }
 
-        $this->filesystem->remove(sprintf(self::TASK_FILENAME_MASK, $this->path, $taskName));
+        $this->filesystem->remove(sprintf(self::TASK_FILENAME_MASK, $this->options['path'], $taskName));
         $this->create($updatedTask);
     }
 
@@ -147,7 +147,7 @@ final class FilesystemTransport implements TransportInterface
      */
     public function delete(string $taskName): void
     {
-        $this->filesystem->remove(sprintf(self::TASK_FILENAME_MASK, $this->path, $taskName));
+        $this->filesystem->remove(sprintf(self::TASK_FILENAME_MASK, $this->options['path'], $taskName));
     }
 
     /**
@@ -157,9 +157,9 @@ final class FilesystemTransport implements TransportInterface
     {
         $finder = new Finder();
 
-        $finder->files()->in($this->path)->name('*.json');
+        $finder->files()->in($this->options['path'])->name('*.json');
         foreach ($finder as $task) {
-            $this->filesystem->remove(sprintf(self::TASK_FILENAME_MASK, $this->path, strtr($task->getFilename(), ['.json' => ''])));
+            $this->filesystem->remove(sprintf(self::TASK_FILENAME_MASK, $this->options['path'], strtr($task->getFilename(), ['.json' => ''])));
         }
     }
 
@@ -173,6 +173,6 @@ final class FilesystemTransport implements TransportInterface
 
     private function fileExist(string $taskName): bool
     {
-        return $this->filesystem->exists(sprintf(self::TASK_FILENAME_MASK, $this->path, $taskName));
+        return $this->filesystem->exists(sprintf(self::TASK_FILENAME_MASK, $this->options['path'], $taskName));
     }
 }

@@ -9,12 +9,14 @@
  * file that was distributed with this source code.
  */
 
-$container->loadFromExtension('framework', [
-    'scheduler' => [
-        'timezone' => 'UTC',
-        'path' => '/_tasks',
-        'transport' => [
-            'dsn' => 'memory://first_in_first_out',
-        ],
-    ],
-]);
+namespace Symfony\Component\Scheduler\Task;
+
+/**
+ * @author Guillaume Loulier <contact@guillaumeloulier.fr>
+ *
+ * @experimental in 5.3
+ */
+interface TaskBuilderInterface
+{
+    public function create(array $options = []): TaskInterface;
+}

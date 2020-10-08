@@ -52,7 +52,7 @@ final class ConnectionIntegrationTest extends TestCase
         $dsn = Dsn::fromString(getenv('SCHEDULER_REDIS_DSN'));
         $objectNormalizer = new ObjectNormalizer();
 
-        $serializer = new Serializer([new TaskNormalizer(new DateTimeNormalizer(), new DateTimeZoneNormalizer(), new DateIntervalNormalizer(), $objectNormalizer), $objectNormalizer], [new JsonEncoder()]);
+        $serializer = new Serializer([new TaskNormalizer(new DateTimeNormalizer(), new DateIntervalNormalizer(), $objectNormalizer), $objectNormalizer], [new JsonEncoder()]);
         $objectNormalizer->setSerializer($serializer);
 
         try {

@@ -36,7 +36,7 @@ final class TaskMessageHandler implements MessageHandlerInterface
     {
         $task = $message->getTask();
 
-        if (!CronExpression::factory($task->getExpression())->isDue(new \DateTimeImmutable('now', $task->getTimezone()), $task->getTimezone())) {
+        if (!CronExpression::factory($task->getExpression())->isDue(new \DateTimeImmutable('now', $task->getTimezone()), $task->getTimezone()->getName())) {
             return;
         }
 

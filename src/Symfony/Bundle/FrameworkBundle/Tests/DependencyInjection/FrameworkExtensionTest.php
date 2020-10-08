@@ -46,11 +46,19 @@ use Symfony\Component\HttpClient\MockHttpClient;
 use Symfony\Component\HttpClient\RetryableHttpClient;
 use Symfony\Component\HttpClient\ScopingHttpClient;
 use Symfony\Component\HttpKernel\DependencyInjection\LoggerPass;
+use Symfony\Component\Lock\Store\FlockStore;
 use Symfony\Component\Messenger\Transport\TransportFactory;
 use Symfony\Component\PropertyAccess\PropertyAccessor;
+use Symfony\Component\Scheduler\Runner\RunnerInterface;
+use Symfony\Component\Scheduler\SchedulePolicy\PolicyInterface;
 use Symfony\Component\Scheduler\SchedulePolicy\SchedulePolicyOrchestratorInterface;
+use Symfony\Component\Scheduler\SchedulerAwareInterface;
 use Symfony\Component\Scheduler\SchedulerInterface;
+use Symfony\Component\Scheduler\Task\Builder\BuilderInterface;
+use Symfony\Component\Scheduler\Task\TaskBuilderInterface;
 use Symfony\Component\Scheduler\Task\TaskExecutionTrackerInterface;
+use Symfony\Component\Scheduler\Transport\TransportFactoryInterface;
+use Symfony\Component\Scheduler\Transport\TransportInterface;
 use Symfony\Component\Scheduler\Worker\WorkerInterface;
 use Symfony\Component\Serializer\Mapping\Loader\AnnotationLoader;
 use Symfony\Component\Serializer\Mapping\Loader\XmlFileLoader;
@@ -1627,6 +1635,37 @@ abstract class FrameworkExtensionTest extends TestCase
     {
         $container = $this->createContainerFromFile('scheduler_default_options');
 
+        static::assertArrayHasKey(TransportFactoryInterface::class, $container->getAutoconfiguredInstanceof());
+        static::assertInstanceOf(ChildDefinition::class, $container->getAutoconfiguredInstanceof()[TransportFactoryInterface::class]);
+        static::assertTrue($container->getAutoconfiguredInstanceof()[TransportFactoryInterface::class]->hasTag('scheduler.transport_factory'));
+        static::assertFalse($container->getAutoconfiguredInstanceof()[TransportFactoryInterface::class]->isPublic());
+
+        static::assertArrayHasKey(TransportInterface::class, $container->getAutoconfiguredInstanceof());
+        static::assertInstanceOf(ChildDefinition::class, $container->getAutoconfiguredInstanceof()[TransportInterface::class]);
+        static::assertTrue($container->getAutoconfiguredInstanceof()[TransportInterface::class]->hasTag('scheduler.transport'));
+
+        static::assertArrayHasKey(RunnerInterface::class, $container->getAutoconfiguredInstanceof());
+        static::assertInstanceOf(ChildDefinition::class, $container->getAutoconfiguredInstanceof()[RunnerInterface::class]);
+        static::assertTrue($container->getAutoconfiguredInstanceof()[RunnerInterface::class]->hasTag('scheduler.runner'));
+        static::assertFalse($container->getAutoconfiguredInstanceof()[RunnerInterface::class]->isPublic());
+
+        static::assertArrayHasKey(SchedulerAwareInterface::class, $container->getAutoconfiguredInstanceof());
+        static::assertInstanceOf(ChildDefinition::class, $container->getAutoconfiguredInstanceof()[SchedulerAwareInterface::class]);
+        static::assertTrue($container->getAutoconfiguredInstanceof()[SchedulerAwareInterface::class]->hasTag('scheduler.entry_point'));
+        static::assertTrue($container->getAutoconfiguredInstanceof()[SchedulerAwareInterface::class]->hasMethodCall('schedule'));
+        static::assertSame('schedule', $container->getAutoconfiguredInstanceof()[SchedulerAwareInterface::class]->getMethodCalls()[0][0]);
+        static::assertInstanceOf(Reference::class, $container->getAutoconfiguredInstanceof()[SchedulerAwareInterface::class]->getMethodCalls()[0][1][0]);
+
+        static::assertArrayHasKey(PolicyInterface::class, $container->getAutoconfiguredInstanceof());
+        static::assertInstanceOf(ChildDefinition::class, $container->getAutoconfiguredInstanceof()[PolicyInterface::class]);
+        static::assertTrue($container->getAutoconfiguredInstanceof()[PolicyInterface::class]->hasTag('scheduler.schedule_policy'));
+        static::assertFalse($container->getAutoconfiguredInstanceof()[PolicyInterface::class]->isPublic());
+
+        static::assertArrayHasKey(BuilderInterface::class, $container->getAutoconfiguredInstanceof());
+        static::assertInstanceOf(ChildDefinition::class, $container->getAutoconfiguredInstanceof()[BuilderInterface::class]);
+        static::assertTrue($container->getAutoconfiguredInstanceof()[BuilderInterface::class]->hasTag('scheduler.task_builder'));
+        static::assertFalse($container->getAutoconfiguredInstanceof()[BuilderInterface::class]->isPublic());
+
         static::assertTrue($container->hasParameter('scheduler.timezone'));
         static::assertSame('UTC', $container->getParameter('scheduler.timezone'));
         static::assertTrue($container->hasParameter('scheduler.trigger_path'));
@@ -1656,6 +1695,9 @@ abstract class FrameworkExtensionTest extends TestCase
         static::assertInstanceOf(Reference::class, $container->getDefinition('scheduler.command.reboot')->getArgument(2));
         static::assertInstanceOf(Reference::class, $container->getDefinition('scheduler.command.reboot')->getArgument(3));
         static::assertTrue($container->getDefinition('scheduler.command.reboot')->hasTag('console.command'));
+        static::assertTrue($container->getDefinition('scheduler.command.consume')->hasTag('monolog.logger'));
+        static::assertArrayHasKey('channel', $container->getDefinition('scheduler.command.consume')->getTag('monolog.logger')[0]);
+        static::assertSame('scheduler', $container->getDefinition('scheduler.command.consume')->getTag('monolog.logger')[0]['channel']);
 
         static::assertTrue($container->has('scheduler.command.remove_failed'));
         static::assertInstanceOf(Reference::class, $container->getDefinition('scheduler.command.remove_failed')->getArgument(0));
@@ -1667,17 +1709,9 @@ abstract class FrameworkExtensionTest extends TestCase
         static::assertInstanceOf(Reference::class, $container->getDefinition('scheduler.command.retry_failed')->getArgument(2));
         static::assertInstanceOf(Reference::class, $container->getDefinition('scheduler.command.retry_failed')->getArgument(3));
         static::assertTrue($container->getDefinition('scheduler.command.retry_failed')->hasTag('console.command'));
-
-        static::assertTrue($container->has('scheduler.worker'));
-        static::assertInstanceOf(Reference::class, $container->getDefinition('scheduler.worker')->getArgument(0));
-        static::assertInstanceOf(TaggedIteratorArgument::class, $container->getDefinition('scheduler.worker')->getArgument(1));
-        static::assertInstanceOf(Reference::class, $container->getDefinition('scheduler.worker')->getArgument(2));
-        static::assertInstanceOf(Reference::class, $container->getDefinition('scheduler.worker')->getArgument(3));
-        static::assertInstanceOf(Reference::class, $container->getDefinition('scheduler.worker')->getArgument(4));
-        static::assertTrue($container->getDefinition('scheduler.worker')->hasTag('monolog.logger'));
-        static::assertArrayHasKey('channel', $container->getDefinition('scheduler.worker')->getTag('monolog.logger')[0]);
-        static::assertSame('scheduler', $container->getDefinition('scheduler.worker')->getTag('monolog.logger')[0]['channel']);
-        static::assertTrue($container->hasAlias(WorkerInterface::class));
+        static::assertTrue($container->getDefinition('scheduler.command.consume')->hasTag('monolog.logger'));
+        static::assertArrayHasKey('channel', $container->getDefinition('scheduler.command.consume')->getTag('monolog.logger')[0]);
+        static::assertSame('scheduler', $container->getDefinition('scheduler.command.consume')->getTag('monolog.logger')[0]['channel']);
 
         static::assertTrue($container->has('scheduler.application'));
         static::assertInstanceOf(Reference::class, $container->getDefinition('scheduler.application')->getArgument(0));
@@ -1690,13 +1724,6 @@ abstract class FrameworkExtensionTest extends TestCase
 
         static::assertTrue($container->has('scheduler.transport_factory.filesystem'));
         static::assertTrue($container->getDefinition('scheduler.transport_factory.filesystem')->hasTag('scheduler.transport_factory'));
-
-        static::assertTrue($container->has('scheduler.transport_factory.doctrine'));
-        static::assertInstanceOf(Reference::class, $container->getDefinition('scheduler.transport_factory.doctrine')->getArgument(0));
-        static::assertTrue($container->getDefinition('scheduler.transport_factory.doctrine')->hasTag('scheduler.transport_factory'));
-
-        static::assertTrue($container->has('scheduler.transport_factory.redis'));
-        static::assertTrue($container->getDefinition('scheduler.transport_factory.redis')->hasTag('scheduler.transport_factory'));
 
         static::assertTrue($container->has('scheduler.expression_factory'));
         static::assertTrue($container->has('scheduler.schedule_policy_orchestrator'));
@@ -1720,6 +1747,22 @@ abstract class FrameworkExtensionTest extends TestCase
         static::assertTrue($container->getDefinition('scheduler.nice_policy')->hasTag('scheduler.schedule_policy'));
         static::assertTrue($container->has('scheduler.round_robin_policy'));
         static::assertTrue($container->getDefinition('scheduler.round_robin_policy')->hasTag('scheduler.schedule_policy'));
+
+        static::assertTrue($container->has('scheduler.task_builder'));
+        static::assertInstanceOf(TaggedIteratorArgument::class, $container->getDefinition('scheduler.task_builder')->getArgument(0));
+        static::assertTrue($container->hasAlias(TaskBuilderInterface::class));
+
+        static::assertTrue($container->has('scheduler.command_task_builder'));
+        static::assertTrue($container->getDefinition('scheduler.command_task_builder')->hasTag('scheduler.task_builder'));
+
+        static::assertTrue($container->has('scheduler.http_task_builder'));
+        static::assertTrue($container->getDefinition('scheduler.http_task_builder')->hasTag('scheduler.task_builder'));
+
+        static::assertTrue($container->has('scheduler.null_task_builder'));
+        static::assertTrue($container->getDefinition('scheduler.null_task_builder')->hasTag('scheduler.task_builder'));
+
+        static::assertTrue($container->has('scheduler.shell_task_builder'));
+        static::assertTrue($container->getDefinition('scheduler.shell_task_builder')->hasTag('scheduler.task_builder'));
 
         static::assertTrue($container->has('scheduler.shell_runner'));
         static::assertTrue($container->getDefinition('scheduler.shell_runner')->hasTag('scheduler.runner'));
@@ -1762,6 +1805,9 @@ abstract class FrameworkExtensionTest extends TestCase
         static::assertInstanceOf(Reference::class, $container->getDefinition('scheduler.task_subscriber')->getArgument(3));
         static::assertInstanceOf(Reference::class, $container->getDefinition('scheduler.task_subscriber')->getArgument(4));
         static::assertTrue($container->getDefinition('scheduler.task_subscriber')->hasTag('kernel.event_subscriber'));
+        static::assertTrue($container->getDefinition('scheduler.command.consume')->hasTag('monolog.logger'));
+        static::assertArrayHasKey('channel', $container->getDefinition('scheduler.command.consume')->getTag('monolog.logger')[0]);
+        static::assertSame('scheduler', $container->getDefinition('scheduler.command.consume')->getTag('monolog.logger')[0]['channel']);
 
         static::assertTrue($container->hasDefinition('scheduler.task_execution.subscriber'));
         static::assertInstanceOf(Reference::class, $container->getDefinition('scheduler.task_execution.subscriber')->getArgument(0));
@@ -1780,16 +1826,84 @@ abstract class FrameworkExtensionTest extends TestCase
 
         static::assertTrue($container->hasDefinition('scheduler.transport'));
         static::assertSame('memory://first_in_first_out', $container->getDefinition('scheduler.transport')->getArgument(0));
-        static::assertSame([], $container->getDefinition('scheduler.transport')->getArgument(1));
+        static::assertSame([
+            'execution_mode' => 'first_in_first_out',
+            'path' => '%kernel.project_dir%/var/tasks',
+        ], $container->getDefinition('scheduler.transport')->getArgument(1));
         static::assertInstanceOf(Reference::class, $container->getDefinition('scheduler.transport')->getArgument(2));
+        static::assertInstanceOf(Reference::class, $container->getDefinition('scheduler.transport')->getArgument(3));
+        static::assertInstanceOf(Reference::class, $container->getDefinition('scheduler.transport')->getFactory()[0]);
+        static::assertSame('createTransport', $container->getDefinition('scheduler.transport')->getFactory()[1]);
         static::assertTrue($container->getDefinition('scheduler.transport')->hasTag('scheduler.transport'));
+        static::assertTrue($container->getDefinition('scheduler.transport')->isShared());
 
         static::assertTrue($container->hasDefinition('scheduler.scheduler'));
-        static::assertInstanceOf(\DateTimeZone::class, $container->getDefinition('scheduler.scheduler')->getArgument(0));
+        static::assertSame('UTC', $container->getDefinition('scheduler.scheduler')->getArgument(0));
         static::assertInstanceOf(Reference::class, $container->getDefinition('scheduler.scheduler')->getArgument(1));
         static::assertInstanceOf(Reference::class, $container->getDefinition('scheduler.scheduler')->getArgument(2));
         static::assertInstanceOf(Reference::class, $container->getDefinition('scheduler.scheduler')->getArgument(3));
         static::assertTrue($container->hasAlias(SchedulerInterface::class));
+        static::assertTrue($container->getDefinition('scheduler.scheduler')->isShared());
+
+        static::assertTrue($container->has('scheduler.worker'));
+        static::assertInstanceOf(Reference::class, $container->getDefinition('scheduler.worker')->getArgument(0));
+        static::assertInstanceOf(TaggedIteratorArgument::class, $container->getDefinition('scheduler.worker')->getArgument(1));
+        static::assertInstanceOf(Reference::class, $container->getDefinition('scheduler.worker')->getArgument(2));
+        static::assertInstanceOf(Reference::class, $container->getDefinition('scheduler.worker')->getArgument(3));
+        static::assertInstanceOf(Reference::class, $container->getDefinition('scheduler.worker')->getArgument(4));
+        static::assertTrue($container->getDefinition('scheduler.worker')->hasTag('monolog.logger'));
+        static::assertArrayHasKey('channel', $container->getDefinition('scheduler.worker')->getTag('monolog.logger')[0]);
+        static::assertSame('scheduler', $container->getDefinition('scheduler.worker')->getTag('monolog.logger')[0]['channel']);
+        static::assertTrue($container->hasAlias(WorkerInterface::class));
+
+        static::assertTrue($container->has('scheduler.transport_factory.doctrine'));
+        static::assertInstanceOf(Reference::class, $container->getDefinition('scheduler.transport_factory.doctrine')->getArgument(0));
+        static::assertFalse($container->getDefinition('scheduler.transport_factory.doctrine')->hasTag('scheduler.transport_factory'));
+
+        static::assertTrue($container->has('scheduler.transport_factory.redis'));
+        static::assertTrue($container->getDefinition('scheduler.transport_factory.redis')->hasTag('scheduler.transport_factory'));
+
+        static::assertTrue($container->has('kernel'));
+        static::assertFalse($container->getDefinition('kernel')->hasTag('scheduler.entry_point'));
+    }
+
+    public function testSchedulerWithLockStore(): void
+    {
+        $container = $this->createContainerFromFile('scheduler_specific_lock_store', [], true, false);
+        $container->register('lock.default', FlockStore::class);
+        $container->compile();
+
+        static::assertTrue($container->has('scheduler.worker'));
+        static::assertInstanceOf(Reference::class, $container->getDefinition('scheduler.worker')->getArgument(0));
+        static::assertInstanceOf(TaggedIteratorArgument::class, $container->getDefinition('scheduler.worker')->getArgument(1));
+        static::assertInstanceOf(Reference::class, $container->getDefinition('scheduler.worker')->getArgument(2));
+        static::assertInstanceOf(Reference::class, $container->getDefinition('scheduler.worker')->getArgument(3));
+        static::assertInstanceOf(Reference::class, $container->getDefinition('scheduler.worker')->getArgument(4));
+        static::assertInstanceOf(Reference::class, $container->getDefinition('scheduler.worker')->getArgument(5));
+        static::assertTrue($container->getDefinition('scheduler.worker')->hasTag('monolog.logger'));
+        static::assertArrayHasKey('channel', $container->getDefinition('scheduler.worker')->getTag('monolog.logger')[0]);
+        static::assertSame('scheduler', $container->getDefinition('scheduler.worker')->getTag('monolog.logger')[0]['channel']);
+        static::assertTrue($container->hasAlias(WorkerInterface::class));
+    }
+
+    public function testSchedulerWithCommandTasks(): void
+    {
+
+    }
+
+    public function testSchedulerWithHttpTasks(): void
+    {
+
+    }
+
+    public function testSchedulerWithNullTasks(): void
+    {
+
+    }
+
+    public function testSchedulerWithShellTasks(): void
+    {
+
     }
 
     protected function createContainer(array $data = [])
