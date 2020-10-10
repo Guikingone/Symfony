@@ -1909,7 +1909,14 @@ class Configuration implements ConfigurationInterface
                                     ->end()
                                     ->enumNode('type')
                                         ->info('The type of task to create')
+                                        ->validate()
+                                            ->ifNull()
+                                            ->then(function ($v): string {
+                                                return 'null';
+                                            })
+                                        ->end()
                                         ->values(['shell', 'command', 'null', 'http'])
+                                        ->defaultValue('null')
                                         ->cannotBeEmpty()->isRequired()
                                     ->end()
                                     ->variableNode('command')

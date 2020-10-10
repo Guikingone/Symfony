@@ -2393,10 +2393,10 @@ class FrameworkExtension extends Extension
             $container->getDefinition('scheduler.worker')->setArgument(5, new Reference($config['lock_store']));
         }
 
-        foreach ($config['tasks'] as $taskOptions) {
-            $taskDefinition = $container->register(sprintf('scheduler.%s_task', $taskOptions['name']), TaskInterface::class)
+        foreach ($config['tasks'] as $name => $taskConfiguration) {
+            $taskDefinition = $container->register(sprintf('scheduler.%s_task', $name), TaskInterface::class)
                 ->setFactory([TaskBuilderInterface::class, 'create'])
-                ->setArguments([$taskOptions])
+                ->setArguments([array_merge(['name' => $name], $taskConfiguration)])
                 ->addTag('scheduler.task')
                 ->setPublic(false)
             ;
