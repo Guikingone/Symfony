@@ -1,0 +1,14 @@
+framework:
+  scheduler:
+    timezone: 'UTC'
+    path: '/_tasks'
+    transport:
+      dsn: 'memory://first_in_first_out'
+    tasks:
+      foo:
+        type: 'command'
+        command: 'cache:clear'
+        expression: '*/5 * * * *'
+        description: 'A simple cache clear task'
+        options:
+          env: test

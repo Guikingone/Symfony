@@ -1888,6 +1888,7 @@ abstract class FrameworkExtensionTest extends TestCase
 
     public function testSchedulerWithCommandTasks(): void
     {
+        $container = $this->createContainerFromFile('scheduler_with_command_tasks');
 
     }
 

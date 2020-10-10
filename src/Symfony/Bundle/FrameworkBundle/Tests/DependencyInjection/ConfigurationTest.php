@@ -514,13 +514,11 @@ class ConfigurationTest extends TestCase
                     ],
                 ],
                 'tasks' => [
-                    [
-                        'name' => 'foo',
+                    'foo' => [
                         'type' => 'null',
                         'expression' => '* * * * *',
                     ],
-                    [
-                        'name' => 'bar',
+                    'bar' => [
                         'type' => 'null',
                         'expression' => '* * * * *',
                     ],
@@ -539,8 +537,7 @@ class ConfigurationTest extends TestCase
                     ],
                 ],
                 'tasks' => [
-                    [
-                        'name' => 'foo',
+                    'foo' => [
                         'type' => 'null',
                         'expression' => '* * * * *',
                         'queued' => false,
@@ -550,8 +547,7 @@ class ConfigurationTest extends TestCase
                         'arguments' => [],
                         'options' => [],
                     ],
-                    [
-                        'name' => 'bar',
+                    'bar' => [
                         'type' => 'null',
                         'expression' => '* * * * *',
                         'queued' => false,
@@ -582,8 +578,7 @@ class ConfigurationTest extends TestCase
                     ],
                 ],
                 'tasks' => [
-                    [
-                        'name' => 'foo',
+                    'foo' => [
                         'type' => 'shell',
                         'command' => ['ls',  '-al'],
                         'environment_variables' => [
@@ -593,8 +588,7 @@ class ConfigurationTest extends TestCase
                         'expression' => '* * * * *',
                         'description' => 'A simple ls command',
                     ],
-                    [
-                        'name' => 'bar',
+                    'bar' => [
                         'type' => 'shell',
                         'command' => ['ls',  '-l'],
                         'environment_variables' => [
@@ -619,8 +613,7 @@ class ConfigurationTest extends TestCase
                     ],
                 ],
                 'tasks' => [
-                    [
-                        'name' => 'foo',
+                    'foo' => [
                         'type' => 'shell',
                         'command' => ['ls',  '-al'],
                         'environment_variables' => [
@@ -635,8 +628,7 @@ class ConfigurationTest extends TestCase
                         'arguments' => [],
                         'options' => [],
                     ],
-                    [
-                        'name' => 'bar',
+                    'bar' => [
                         'type' => 'shell',
                         'command' => ['ls',  '-l'],
                         'environment_variables' => [
@@ -672,8 +664,7 @@ class ConfigurationTest extends TestCase
                     ],
                 ],
                 'tasks' => [
-                    [
-                        'name' => 'foo',
+                    'foo' => [
                         'type' => 'command',
                         'command' => 'cache:clear',
                         'options' => [
@@ -697,8 +688,7 @@ class ConfigurationTest extends TestCase
                     ],
                 ],
                 'tasks' => [
-                    [
-                        'name' => 'foo',
+                    'foo' => [
                         'type' => 'command',
                         'command' => 'cache:clear',
                         'options' => [
@@ -733,8 +723,7 @@ class ConfigurationTest extends TestCase
                     ],
                 ],
                 'tasks' => [
-                    [
-                        'name' => 'foo',
+                    'foo' => [
                         'type' => 'http',
                         'url' => 'https://symfony.com',
                         'method' => 'GET',
@@ -760,8 +749,7 @@ class ConfigurationTest extends TestCase
                     ],
                 ],
                 'tasks' => [
-                    [
-                        'name' => 'foo',
+                    'foo' => [
                         'type' => 'http',
                         'url' => 'https://symfony.com',
                         'method' => 'GET',
