@@ -95,7 +95,7 @@ final class TaskBuilderTest extends TestCase
         yield [
             [
                 'name' => 'foo',
-                'type' => 'null',
+                'type' => null,
                 'expression' => '* * * * *',
                 'queued' => false,
                 'timezone' => 'UTC',
@@ -108,7 +108,7 @@ final class TaskBuilderTest extends TestCase
         yield [
             [
                 'name' => 'bar',
-                'type' => 'null',
+                'type' => null,
                 'expression' => '* * * * *',
                 'queued' => false,
                 'timezone' => 'UTC',

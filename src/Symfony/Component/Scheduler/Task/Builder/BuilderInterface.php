@@ -23,5 +23,5 @@ interface BuilderInterface
 {
     public function build(PropertyAccessorInterface $propertyAccessor, array $options = []): TaskInterface;
 
-    public function support(string $type): bool;
+    public function support(?string $type = null): bool;
 }

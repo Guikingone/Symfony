@@ -27,7 +27,7 @@ final class NullBuilderTest extends TestCase
         $builder = new NullBuilder();
 
         static::assertFalse($builder->support('test'));
-        static::assertTrue($builder->support('null'));
+        static::assertTrue($builder->support());
     }
 
     /**
@@ -54,7 +54,7 @@ final class NullBuilderTest extends TestCase
         yield [
             [
                 'name' => 'foo',
-                'type' => 'null',
+                'type' => null,
                 'expression' => '* * * * *',
                 'queued' => false,
                 'timezone' => 'UTC',
@@ -67,7 +67,7 @@ final class NullBuilderTest extends TestCase
         yield [
             [
                 'name' => 'bar',
-                'type' => 'null',
+                'type' => null,
                 'expression' => '* * * * *',
                 'queued' => false,
                 'timezone' => 'UTC',

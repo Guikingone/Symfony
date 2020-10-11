@@ -515,11 +515,11 @@ class ConfigurationTest extends TestCase
                 ],
                 'tasks' => [
                     'foo' => [
-                        'type' => 'null',
+                        'type' => null,
                         'expression' => '* * * * *',
                     ],
                     'bar' => [
-                        'type' => 'null',
+                        'type' => null,
                         'expression' => '* * * * *',
                     ],
                 ],
@@ -538,7 +538,7 @@ class ConfigurationTest extends TestCase
                 ],
                 'tasks' => [
                     'foo' => [
-                        'type' => 'null',
+                        'type' => null,
                         'expression' => '* * * * *',
                         'queued' => false,
                         'timezone' => 'UTC',
@@ -548,7 +548,7 @@ class ConfigurationTest extends TestCase
                         'options' => [],
                     ],
                     'bar' => [
-                        'type' => 'null',
+                        'type' => null,
                         'expression' => '* * * * *',
                         'queued' => false,
                         'timezone' => 'UTC',

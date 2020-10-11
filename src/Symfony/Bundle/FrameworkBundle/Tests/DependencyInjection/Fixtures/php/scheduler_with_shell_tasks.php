@@ -18,8 +18,14 @@ $container->loadFromExtension('framework', [
         ],
         'tasks' => [
             'foo' => [
-                'type' => null,
-                'expression' => '*/5 * * * *',
+                'type' => 'shell',
+                'expression' => '* * * * *',
+                'command' => ['ls', '-al'],
+                'environment_variables' => [
+                    'APP_ENV' => 'test',
+                ],
+                'timeout' => 50,
+                'description' => 'A simple ls command',
             ],
         ],
     ],

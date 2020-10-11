@@ -43,8 +43,8 @@ final class NullBuilder implements BuilderInterface
     /**
      * {@inheritdoc}
      */
-    public function support(string $type): bool
+    public function support(?string $type = null): bool
     {
-        return 'null' === $type;
+        return null === $type;
     }
 }

@@ -1927,7 +1927,15 @@ abstract class FrameworkExtensionTest extends TestCase
 
     public function testSchedulerWithShellTasks(): void
     {
+        $container = $this->createContainerFromFile('scheduler_with_shell_tasks');
 
+        static::assertTrue($container->hasDefinition('scheduler.foo_task'));
+        static::assertFalse($container->getDefinition('scheduler.foo_task')->isPublic());
+        static::assertSame(TaskBuilderInterface::class, $container->getDefinition('scheduler.foo_task')->getFactory()[0]);
+        static::assertSame('create', $container->getDefinition('scheduler.foo_task')->getFactory()[1]);
+        static::assertTrue($container->getDefinition('scheduler.foo_task')->hasTag('scheduler.task'));
+        static::assertTrue($container->getDefinition('scheduler.scheduler')->hasMethodCall('schedule'));
+        static::assertInstanceOf(Definition::class, $container->getDefinition('scheduler.scheduler')->getMethodCalls()[0][1][0]);
     }
 
     protected function createContainer(array $data = [])

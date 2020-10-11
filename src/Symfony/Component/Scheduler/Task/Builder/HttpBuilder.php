@@ -43,7 +43,7 @@ final class HttpBuilder implements BuilderInterface
     /**
      * {@inheritdoc}
      */
-    public function support(string $type): bool
+    public function support(?string $type = null): bool
     {
         return 'http' === $type;
     }

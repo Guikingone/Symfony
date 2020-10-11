@@ -6,5 +6,5 @@ framework:
       dsn: 'memory://first_in_first_out'
     tasks:
       foo:
-        type: 'null'
+        type: null
         expression: '*/5 * * * *'
