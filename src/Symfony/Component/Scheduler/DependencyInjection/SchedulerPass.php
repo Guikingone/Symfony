@@ -33,10 +33,10 @@ final class SchedulerPass implements CompilerPassInterface
      */
     public function process(ContainerBuilder $container)
     {
-        $this->removeSchedulerTasks($container);
+        $this->removeTasks($container);
     }
 
-    private function removeSchedulerTasks(ContainerBuilder $container): void
+    private function removeTasks(ContainerBuilder $container): void
     {
         foreach ($container->findTaggedServiceIds($this->schedulerTaskTag) as $task) {
             $container->removeDefinition($task);

@@ -14,6 +14,7 @@ namespace Symfony\Component\Scheduler\Tests\EventListener;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\LoggerInterface;
 use Symfony\Bridge\PhpUnit\ClockMock;
+use Symfony\Component\Scheduler\Event\WorkerRunningEvent;
 use Symfony\Component\Scheduler\Event\WorkerStartedEvent;
 use Symfony\Component\Scheduler\Event\WorkerStoppedEvent;
 use Symfony\Component\Scheduler\EventListener\StopWorkerOnTimeLimitSubscriber;
@@ -62,11 +63,11 @@ final class StopWorkerOnTimeLimitSubscriberTest extends TestCase
         $worker->expects(self::never())->method('stop');
 
         $subscriber = new StopWorkerOnTimeLimitSubscriber(1);
-        $event = new WorkerStoppedEvent($worker);
+        $event = new WorkerRunningEvent($worker);
         $workerStartedEvent = new WorkerStartedEvent($worker);
 
         $subscriber->onWorkerStarted($workerStartedEvent);
-        $subscriber->onWorkerStopped($event);
+        $subscriber->onWorkerRunning($event);
     }
 
     public function testSubscriberCannotStopOnValidTime(): void
@@ -79,11 +80,11 @@ final class StopWorkerOnTimeLimitSubscriberTest extends TestCase
         $worker->expects(self::once())->method('stop');
 
         $subscriber = new StopWorkerOnTimeLimitSubscriber(1, $logger);
-        $event = new WorkerStoppedEvent($worker);
+        $event = new WorkerRunningEvent($worker);
         $workerStartedEvent = new WorkerStartedEvent($worker);
 
         $subscriber->onWorkerStarted($workerStartedEvent);
         ClockMock::sleep(1);
-        $subscriber->onWorkerStopped($event);
+        $subscriber->onWorkerRunning($event);
     }
 }

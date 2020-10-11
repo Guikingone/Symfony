@@ -38,17 +38,6 @@ use Symfony\Component\Serializer\Normalizer\ObjectNormalizer;
 final class TaskNormalizer implements DenormalizerInterface, NormalizerInterface
 {
     private const NORMALIZATION_DISCRIMINATOR = 'taskInternalType';
-    private const DATETIME_ATTRIBUTES = [
-        'arrivalTime',
-        'executionStartTime',
-        'executionEndTime',
-        'lastExecution',
-        'scheduledAt',
-    ];
-    private const DATEINTERVAL_ATTRIBUTES = [
-        'executionAbsoluteDeadline',
-        'executionRelativeDeadline',
-    ];
 
     private $dateTimeNormalizer;
     private $dateIntervalNormalizer;
@@ -123,7 +112,6 @@ final class TaskNormalizer implements DenormalizerInterface, NormalizerInterface
     {
         $objectType = $data[self::NORMALIZATION_DISCRIMINATOR];
         $body = $data['body'];
-        $body = $this->handleDatetimeAttributes($body);
 
         if (CallbackTask::class === $objectType) {
             $callback = [
@@ -237,27 +225,12 @@ final class TaskNormalizer implements DenormalizerInterface, NormalizerInterface
      */
     public function supportsDenormalization($data, string $type, string $format = null): bool
     {
-        return \array_key_exists(self::NORMALIZATION_DISCRIMINATOR, $data);
-    }
-
-    private function handleDatetimeAttributes(array $body): array
-    {
-        foreach ($body as $attributeName => $value) {
-            if (\in_array($attributeName, self::DATETIME_ATTRIBUTES) && null !== $value) {
-                $body[$attributeName] = $this->dateTimeNormalizer->denormalize($value, \DateTimeInterface::class);
-            }
-
-            if (\in_array($attributeName, self::DATEINTERVAL_ATTRIBUTES) && null !== $value) {
-                $body[$attributeName] = $this->dateIntervalNormalizer->denormalize($value, \DateInterval::class);
-            }
-        }
-
-        return $body;
+        return \is_array($data) && \array_key_exists(self::NORMALIZATION_DISCRIMINATOR, $data);
     }
 
     private function handleDateAttributes(): array
     {
-        $dateAttributesCallback = function ($innerObject, $outerObject, string $attributeName, string $format = null, array $context = []) {
+        $dateAttributesCallback = function ($innerObject, $outerObject, string $attributeName, string $format = null, array $context = []): ?string {
             return $innerObject instanceof \DatetimeInterface ? $this->dateTimeNormalizer->normalize($innerObject, $format, $context) : null;
         };
 

@@ -24,7 +24,7 @@ final class StopWorkerOnSignalSubscriber implements EventSubscriberInterface
 {
     public function onWorkerStarted(WorkerStartedEvent $event): void
     {
-        foreach ([SIGTERM, SIGINT, SIGQUIT, SIGKILL, SIGCHLD, SIGSTOP] as $signal) {
+        foreach ([SIGTERM, SIGINT, SIGQUIT] as $signal) {
             pcntl_signal($signal, static function () use ($event): void {
                 $event->getWorker()->stop();
             });

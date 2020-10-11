@@ -14,8 +14,8 @@ namespace Symfony\Component\Scheduler\EventListener;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
+use Symfony\Component\Scheduler\Event\WorkerRunningEvent;
 use Symfony\Component\Scheduler\Event\WorkerStartedEvent;
-use Symfony\Component\Scheduler\Event\WorkerStoppedEvent;
 
 /**
  * @author Guillaume Loulier <contact@guillaumeloulier.fr>
@@ -34,16 +34,12 @@ final class StopWorkerOnTimeLimitSubscriber implements EventSubscriberInterface
         $this->logger = $logger ?: new NullLogger();
     }
 
-    public function onWorkerStarted(WorkerStartedEvent $event): void
+    public function onWorkerStarted(): void
     {
-        $worker = $event->getWorker();
-
-        if ($worker->isRunning()) {
-            $this->endTime = microtime(true) + $this->timeLimitInSeconds;
-        }
+        $this->endTime = microtime(true) + $this->timeLimitInSeconds;
     }
 
-    public function onWorkerStopped(WorkerStoppedEvent $event): void
+    public function onWorkerRunning(WorkerRunningEvent $event): void
     {
         $worker = $event->getWorker();
 
@@ -60,7 +56,7 @@ final class StopWorkerOnTimeLimitSubscriber implements EventSubscriberInterface
     {
         return [
             WorkerStartedEvent::class => 'onWorkerStarted',
-            WorkerStoppedEvent::class => 'onWorkerStopped',
+            WorkerRunningEvent::class => 'onWorkerRunning',
         ];
     }
 }

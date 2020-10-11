@@ -44,6 +44,7 @@ abstract class AbstractTask implements TaskInterface
             'expression' => '* * * * *',
             'execution_absolute_deadline' => null,
             'execution_computation_time' => null,
+            'execution_delay' => null,
             'execution_memory_usage' => null,
             'execution_period' => null,
             'execution_relative_deadline' => null,
@@ -71,6 +72,7 @@ abstract class AbstractTask implements TaskInterface
         $resolver->setAllowedTypes('expression', ['string']);
         $resolver->setAllowedTypes('execution_absolute_deadline', [\DateInterval::class, 'null']);
         $resolver->setAllowedTypes('execution_computation_time', ['float', 'null']);
+        $resolver->setAllowedTypes('execution_delay', ['int', 'null']);
         $resolver->setAllowedTypes('execution_memory_usage', ['int', 'null']);
         $resolver->setAllowedTypes('execution_relative_deadline', [\DateInterval::class, 'null']);
         $resolver->setAllowedTypes('execution_start_time', [\DateTimeImmutable::class, 'null']);
@@ -108,6 +110,7 @@ abstract class AbstractTask implements TaskInterface
         $resolver->setInfo('arrival_time', '[INTERNAL] The time when the task is retrieved in order to execute it');
         $resolver->setInfo('execution_absolute_deadline', '[INTERNAL] An addition of the "execution_start_time" and "execution_relative_deadline" options');
         $resolver->setInfo('execution_computation_time', '[Internal] Used to store the execution duration of a task');
+        $resolver->setInfo('execution_delay', 'The delay in microseconds applied before the task execution');
         $resolver->setInfo('execution_memory_usage', '[INTERNAL] The amount of memory used described as an integer');
         $resolver->setInfo('execution_period', '[Internal] Used to store the period during a task has been executed thanks to deadline sort');
         $resolver->setInfo('execution_relative_deadline', 'The estimated ending date of the task execution, must be a \DateInterval');
@@ -229,6 +232,18 @@ abstract class AbstractTask implements TaskInterface
     public function setExecutionComputationTime(float $executionComputationTime = null): TaskInterface
     {
         $this->options['execution_computation_time'] = $executionComputationTime;
+
+        return $this;
+    }
+
+    public function getExecutionDelay(): ?int
+    {
+        return $this->options['execution_delay'];
+    }
+
+    public function setExecutionDelay(int $executionDelay = null): TaskInterface
+    {
+        $this->options['execution_delay'] = $executionDelay;
 
         return $this;
     }

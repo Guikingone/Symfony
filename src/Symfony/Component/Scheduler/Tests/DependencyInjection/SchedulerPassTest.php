@@ -16,8 +16,7 @@ use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\Scheduler\DataCollector\SchedulerDataCollector;
 use Symfony\Component\Scheduler\DependencyInjection\SchedulerPass;
 use Symfony\Component\Scheduler\Scheduler;
-use Symfony\Component\Scheduler\SchedulerAwareInterface;
-use Symfony\Component\Scheduler\SchedulerInterface;
+use Symfony\Component\Scheduler\Task\TaskInterface;
 
 /**
  * @author Guillaume Loulier <contact@guillaumeloulier.fr>
@@ -27,7 +26,7 @@ final class SchedulerPassTest extends TestCase
     public function testEntryPointCanBeGeneratedWithValidEntryPoints(): void
     {
         $container = $this->getContainerBuilder();
-        $container->register('scheduler.foo_entry_point', FooEntryPoint::class)->addTag('scheduler.entry_point');
+        $container->register('scheduler.foo_task', TaskInterface::class)->addTag('scheduler.entry_point');
 
         (new SchedulerPass())->process($container);
         static::assertTrue($container->hasDefinition('scheduler.foo_entry_point'));
@@ -45,12 +44,5 @@ final class SchedulerPassTest extends TestCase
         $container->register('scheduler.data_collector', SchedulerDataCollector::class);
 
         return $container;
-    }
-}
-
-final class FooEntryPoint implements SchedulerAwareInterface
-{
-    public function schedule(SchedulerInterface $scheduler): void
-    {
     }
 }

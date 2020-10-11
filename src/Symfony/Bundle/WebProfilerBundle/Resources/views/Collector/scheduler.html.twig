@@ -160,11 +160,8 @@
 {% endblock %}
 
 {% macro render_tasks_list(events) %}
-    {% for event in events %}
-        {% set task = event.task %}
-
-        <table class="{{ class|default('') }}">
-            <thead>
+    <table class="{{ class|default('') }}">
+        <thead>
             <tr>
                 <th scope="col" class="key">{{- 'Name' -}}</th>
                 <th scope="col" class="key">{{- 'Description' -}}</th>
@@ -172,17 +169,19 @@
                 <th scope="col" class="key">{{- 'Scheduled at' -}}</th>
                 <th scope="col" class="key">{{- 'State' -}}</th>
             </tr>
-            </thead>
-            <tbody>
-                <tr>
-                    <th class="colored font-normal">{{- task.name -}}</th>
-                    <th>{{ task.description ?? 'No description set' }}</th>
-                    <th>{{- task.expression -}}</th>
-                    <th class="colored font-normal">{{ task.scheduledAt|date }}</th>
-                    <th>{{- task.state -}}</th>
-                </tr>
-            </tbody>
-        </table>
+        </thead>
+        <tbody>
+            {% for event in events %}
+                {% set task = event.task %}
 
-    {% endfor %}
+               <tr>
+                   <th class="colored font-normal">{{- task.name -}}</th>
+                   <th>{{ task.description ?? 'No description set' }}</th>
+                   <th>{{- task.expression -}}</th>
+                   <th class="colored font-normal">{{ task.scheduledAt|date }}</th>
+                   <th>{{- task.state -}}</th>
+               </tr>
+            {% endfor %}
+        </tbody>
+    </table>
 {% endmacro %}

@@ -107,6 +107,10 @@ final class Worker implements WorkerInterface
                     $this->handleSingleRunTask($task);
                     $lockedTask = $this->getLock($task);
 
+                    if (null !== $task->getExecutionDelay() && 0 !== $this->getSleepDuration()) {
+                        usleep($task->getExecutionDelay() / 1000000);
+                    }
+
                     try {
                         if ($lockedTask->acquire() && !$this->isRunning()) {
                             $this->running = true;
@@ -185,7 +189,11 @@ final class Worker implements WorkerInterface
         }
 
         if (\in_array($task->getState(), [TaskInterface::PAUSED, TaskInterface::DISABLED])) {
-            $this->logger->info(sprintf('The following task "%s" is paused|disabled, consider enable it if it should be executed!', $task->getName()));
+            $this->logger->info(sprintf('The following task "%s" is paused|disabled, consider enable it if it should be executed!', $task->getName()), [
+                'task' => $task->getName(),
+                'expression' => $task->getExpression(),
+                'state' => $task->getState(),
+            ]);
 
             return false;
         }

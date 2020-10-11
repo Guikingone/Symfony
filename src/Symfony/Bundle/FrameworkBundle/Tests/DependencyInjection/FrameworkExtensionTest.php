@@ -1750,6 +1750,7 @@ abstract class FrameworkExtensionTest extends TestCase
 
         static::assertTrue($container->has('scheduler.task_builder'));
         static::assertInstanceOf(TaggedIteratorArgument::class, $container->getDefinition('scheduler.task_builder')->getArgument(0));
+        static::assertInstanceOf(Reference::class, $container->getDefinition('scheduler.task_builder')->getArgument(1));
         static::assertTrue($container->hasAlias(TaskBuilderInterface::class));
 
         static::assertTrue($container->has('scheduler.command_task_builder'));
@@ -1791,7 +1792,6 @@ abstract class FrameworkExtensionTest extends TestCase
         static::assertInstanceOf(Reference::class, $container->getDefinition('scheduler.normalizer')->getArgument(0));
         static::assertInstanceOf(Reference::class, $container->getDefinition('scheduler.normalizer')->getArgument(1));
         static::assertInstanceOf(Reference::class, $container->getDefinition('scheduler.normalizer')->getArgument(2));
-        static::assertInstanceOf(Reference::class, $container->getDefinition('scheduler.normalizer')->getArgument(3));
         static::assertTrue($container->getDefinition('scheduler.normalizer')->hasTag('serializer.normalizer'));
 
         static::assertTrue($container->has('scheduler.task_message.handler'));
@@ -1873,7 +1873,6 @@ abstract class FrameworkExtensionTest extends TestCase
         $container->register('lock.default', FlockStore::class);
         $container->compile();
 
-        static::assertTrue($container->has('scheduler.worker'));
         static::assertInstanceOf(Reference::class, $container->getDefinition('scheduler.worker')->getArgument(0));
         static::assertInstanceOf(TaggedIteratorArgument::class, $container->getDefinition('scheduler.worker')->getArgument(1));
         static::assertInstanceOf(Reference::class, $container->getDefinition('scheduler.worker')->getArgument(2));
@@ -1892,7 +1891,7 @@ abstract class FrameworkExtensionTest extends TestCase
 
         static::assertTrue($container->hasDefinition('scheduler.foo_task'));
         static::assertFalse($container->getDefinition('scheduler.foo_task')->isPublic());
-        static::assertSame(TaskBuilderInterface::class, $container->getDefinition('scheduler.foo_task')->getFactory()[0]);
+        static::assertInstanceOf(Reference::class, $container->getDefinition('scheduler.foo_task')->getFactory()[0]);
         static::assertSame('create', $container->getDefinition('scheduler.foo_task')->getFactory()[1]);
         static::assertTrue($container->getDefinition('scheduler.foo_task')->hasTag('scheduler.task'));
         static::assertTrue($container->getDefinition('scheduler.scheduler')->hasMethodCall('schedule'));
@@ -1905,7 +1904,7 @@ abstract class FrameworkExtensionTest extends TestCase
 
         static::assertTrue($container->hasDefinition('scheduler.foo_task'));
         static::assertFalse($container->getDefinition('scheduler.foo_task')->isPublic());
-        static::assertSame(TaskBuilderInterface::class, $container->getDefinition('scheduler.foo_task')->getFactory()[0]);
+        static::assertInstanceOf(Reference::class, $container->getDefinition('scheduler.foo_task')->getFactory()[0]);
         static::assertSame('create', $container->getDefinition('scheduler.foo_task')->getFactory()[1]);
         static::assertTrue($container->getDefinition('scheduler.foo_task')->hasTag('scheduler.task'));
         static::assertTrue($container->getDefinition('scheduler.scheduler')->hasMethodCall('schedule'));
@@ -1918,7 +1917,7 @@ abstract class FrameworkExtensionTest extends TestCase
 
         static::assertTrue($container->hasDefinition('scheduler.foo_task'));
         static::assertFalse($container->getDefinition('scheduler.foo_task')->isPublic());
-        static::assertSame(TaskBuilderInterface::class, $container->getDefinition('scheduler.foo_task')->getFactory()[0]);
+        static::assertInstanceOf(Reference::class, $container->getDefinition('scheduler.foo_task')->getFactory()[0]);
         static::assertSame('create', $container->getDefinition('scheduler.foo_task')->getFactory()[1]);
         static::assertTrue($container->getDefinition('scheduler.foo_task')->hasTag('scheduler.task'));
         static::assertTrue($container->getDefinition('scheduler.scheduler')->hasMethodCall('schedule'));
@@ -1931,7 +1930,7 @@ abstract class FrameworkExtensionTest extends TestCase
 
         static::assertTrue($container->hasDefinition('scheduler.foo_task'));
         static::assertFalse($container->getDefinition('scheduler.foo_task')->isPublic());
-        static::assertSame(TaskBuilderInterface::class, $container->getDefinition('scheduler.foo_task')->getFactory()[0]);
+        static::assertInstanceOf(Reference::class, $container->getDefinition('scheduler.foo_task')->getFactory()[0]);
         static::assertSame('create', $container->getDefinition('scheduler.foo_task')->getFactory()[1]);
         static::assertTrue($container->getDefinition('scheduler.foo_task')->hasTag('scheduler.task'));
         static::assertTrue($container->getDefinition('scheduler.scheduler')->hasMethodCall('schedule'));

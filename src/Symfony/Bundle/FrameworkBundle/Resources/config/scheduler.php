@@ -172,7 +172,8 @@ return static function (ContainerConfigurator $container): void {
         // Builders
         ->set('scheduler.task_builder', TaskBuilder::class)
             ->args([
-                tagged_iterator('scheduler.task_builder')
+                tagged_iterator('scheduler.task_builder'),
+                service('property_accessor'),
             ])
         ->alias(TaskBuilderInterface::class, 'scheduler.task_builder')
 
@@ -226,7 +227,6 @@ return static function (ContainerConfigurator $container): void {
         ->set('scheduler.normalizer', TaskNormalizer::class)
             ->args([
                 service('serializer.normalizer.datetime'),
-                service('serializer.normalizer.datetimezone'),
                 service('serializer.normalizer.dateinterval'),
                 service('serializer.normalizer.object'),
             ])

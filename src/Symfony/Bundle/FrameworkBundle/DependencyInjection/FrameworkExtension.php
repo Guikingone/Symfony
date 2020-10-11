@@ -2395,8 +2395,10 @@ class FrameworkExtension extends Extension
 
         foreach ($config['tasks'] as $name => $taskConfiguration) {
             $taskDefinition = $container->register(sprintf('scheduler.%s_task', $name), TaskInterface::class)
-                ->setFactory([TaskBuilderInterface::class, 'create'])
-                ->setArguments([array_merge(['name' => $name], $taskConfiguration)])
+                ->setFactory([new Reference('scheduler.task_builder'), 'create'])
+                ->setArguments([
+                    array_merge(['name' => $name], $taskConfiguration)
+                ])
                 ->addTag('scheduler.task')
                 ->setPublic(false)
             ;
