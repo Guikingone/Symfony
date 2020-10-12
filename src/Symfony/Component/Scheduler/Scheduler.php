@@ -111,8 +111,21 @@ final class Scheduler implements SchedulerInterface
     {
         $synchronizedCurrentDate = $this->getSynchronizedCurrentDate();
 
-        return $this->transport->list()->filter(function (TaskInterface $task) use ($synchronizedCurrentDate): bool {
+        $dueTasks = $this->transport->list()->filter(function (TaskInterface $task) use ($synchronizedCurrentDate): bool {
             return CronExpression::factory($task->getExpression())->isDue($synchronizedCurrentDate, $task->getTimezone()->getName());
+        });
+
+        return $dueTasks->filter(function (TaskInterface $task) use ($synchronizedCurrentDate): bool {
+            switch ($task) {
+                case $task->getExecutionStartDate() instanceof \DateTimeImmutable && $task->getExecutionEndDate() instanceof \DateTimeImmutable:
+                    return ($task->getExecutionStartDate() === $synchronizedCurrentDate || $task->getExecutionStartDate() < $synchronizedCurrentDate) && $task->getExecutionEndDate() > $synchronizedCurrentDate;
+                case $task->getExecutionStartDate() instanceof \DateTimeImmutable:
+                    return $task->getExecutionStartDate() === $synchronizedCurrentDate || $task->getExecutionStartDate() < $synchronizedCurrentDate;
+                case $task->getExecutionEndDate() instanceof \DateTimeImmutable:
+                    return $task->getExecutionEndDate() > $synchronizedCurrentDate;
+                default:
+                    return true;
+            }
         });
     }
 

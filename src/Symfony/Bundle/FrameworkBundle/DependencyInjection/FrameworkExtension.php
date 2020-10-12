@@ -2357,13 +2357,10 @@ class FrameworkExtension extends Extension
         $loader->load('scheduler.php');
         $loader->load('scheduler_bridge.php');
 
-        if (class_exists(DoctrineTransportFactory::class) && $container->hasDefinition('doctrine')) {
-            $container->getDefinition('scheduler.transport_factory.doctrine')->addTag('scheduler.transport_factory');
-        }
-
-        if (class_exists(RedisTransportFactory::class) && class_exists(\Redis::class)) {
-            $container->getDefinition('scheduler.transport_factory.redis')->addTag('scheduler.transport_factory');
-        }
+        $container->hasDefinition('scheduler.transport_factory.redis') && class_exists(\Redis::class)
+            ? $container->getDefinition('scheduler.transport_factory.redis')->addTag('scheduler.transport_factory')
+            : $container->removeDefinition('scheduler.transport_factory.redis')
+        ;
 
         $container->register('scheduler.transport', SchedulerTransportInterface::class)
             ->setFactory([new Reference('scheduler.transport_factory'), 'createTransport'])

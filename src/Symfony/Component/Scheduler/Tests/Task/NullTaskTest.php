@@ -13,6 +13,7 @@ namespace Symfony\Component\Scheduler\Tests\Task;
 
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Scheduler\Exception\InvalidArgumentException;
+use Symfony\Component\Scheduler\Exception\LogicException;
 use Symfony\Component\Scheduler\Task\NullTask;
 use Symfony\Component\Scheduler\Task\ShellTask;
 
@@ -45,6 +46,25 @@ final class NullTaskTest extends TestCase
         static::expectException(InvalidArgumentException::class);
         static::expectExceptionMessage('The nice value is not valid');
         $task->setNice($nice);
+    }
+
+    public function testTaskCannotBeCreatedWithPreviousDate(): void
+    {
+        $task = new NullTask('foo');
+
+        static::expectException(LogicException::class);
+        static::expectExceptionMessage('The date cannot be previous to the current date');
+        $task->setExecutionStartDate('- 10 minutes');
+    }
+
+    public function testTaskCanBeCreatedWithDate(): void
+    {
+        $task = new NullTask('foo');
+        $task->setExecutionStartDate('+ 10 minutes');
+        $task->setExecutionEndDate('+ 20 minutes');
+
+        static::assertInstanceOf(\DateTimeImmutable::class, $task->getExecutionStartDate());
+        static::assertInstanceOf(\DateTimeImmutable::class, $task->getExecutionEndDate());
     }
 
     public function provideNice(): \Generator

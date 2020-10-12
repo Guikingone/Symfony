@@ -14,6 +14,9 @@ namespace Symfony\Component\Scheduler\Tests\Serializer;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Notifier\Notification\Notification;
 use Symfony\Component\Notifier\Recipient\Recipient;
+use Symfony\Component\PropertyInfo\Extractor\PhpDocExtractor;
+use Symfony\Component\PropertyInfo\Extractor\ReflectionExtractor;
+use Symfony\Component\PropertyInfo\PropertyInfoExtractor;
 use Symfony\Component\Scheduler\Exception\InvalidArgumentException;
 use Symfony\Component\Scheduler\Serializer\TaskNormalizer;
 use Symfony\Component\Scheduler\Task\CallbackTask;
@@ -70,6 +73,10 @@ final class TaskNormalizerTest extends TestCase
         static::assertContainsEquals('tracked', $data['body']);
         static::assertSame(NullTask::class, $data['taskInternalType']);
         static::assertArrayHasKey('taskInternalType', $data);
+
+        $task = $serializer->denormalize($data, TaskInterface::class, 'json');
+
+        static::assertInstanceOf(TaskInterface::class, $task);
     }
 
     public function testCallbackTaskCannotBeDenormalizedWithClosure(): void
@@ -85,7 +92,7 @@ final class TaskNormalizerTest extends TestCase
 
     public function testCallbackTaskCanBeDenormalizedWithCallable(): void
     {
-        $objectNormalizer = new ObjectNormalizer();
+        $objectNormalizer = new ObjectNormalizer(null, null, null, new PropertyInfoExtractor([], [new PhpDocExtractor(), new ReflectionExtractor()]));
 
         $serializer = new Serializer([new TaskNormalizer(new DateTimeNormalizer(), new DateIntervalNormalizer(), $objectNormalizer), new DateTimeNormalizer(), new DateIntervalNormalizer(), new JsonSerializableNormalizer(), $objectNormalizer], [new JsonEncoder()]);
         $objectNormalizer->setSerializer($serializer);
@@ -101,7 +108,7 @@ final class TaskNormalizerTest extends TestCase
 
     public function testCommandTaskCanBeDenormalized(): void
     {
-        $objectNormalizer = new ObjectNormalizer();
+        $objectNormalizer = new ObjectNormalizer(null, null, null, new PropertyInfoExtractor([], [new PhpDocExtractor(), new ReflectionExtractor()]));
 
         $serializer = new Serializer([new TaskNormalizer(new DateTimeNormalizer(), new DateIntervalNormalizer(), $objectNormalizer), new DateTimeNormalizer(), new DateIntervalNormalizer(), new JsonSerializableNormalizer(), $objectNormalizer], [new JsonEncoder()]);
         $objectNormalizer->setSerializer($serializer);
@@ -116,7 +123,7 @@ final class TaskNormalizerTest extends TestCase
 
     public function testCommandTaskCanBeSerializedAndUpdated(): void
     {
-        $objectNormalizer = new ObjectNormalizer();
+        $objectNormalizer = new ObjectNormalizer(null, null, null, new PropertyInfoExtractor([], [new PhpDocExtractor(), new ReflectionExtractor()]));
 
         $serializer = new Serializer([new TaskNormalizer(new DateTimeNormalizer(), new DateIntervalNormalizer(), $objectNormalizer), new DateTimeNormalizer(), new DateIntervalNormalizer(), new JsonSerializableNormalizer(), $objectNormalizer], [new JsonEncoder()]);
         $objectNormalizer->setSerializer($serializer);
@@ -139,7 +146,7 @@ final class TaskNormalizerTest extends TestCase
 
     public function testNullTaskCanBeDenormalized(): void
     {
-        $objectNormalizer = new ObjectNormalizer();
+        $objectNormalizer = new ObjectNormalizer(null, null, null, new PropertyInfoExtractor([], [new PhpDocExtractor(), new ReflectionExtractor()]));
 
         $serializer = new Serializer([new TaskNormalizer(new DateTimeNormalizer(), new DateIntervalNormalizer(), $objectNormalizer), new DateTimeNormalizer(), new DateIntervalNormalizer(), new JsonSerializableNormalizer(), $objectNormalizer], [new JsonEncoder()]);
         $objectNormalizer->setSerializer($serializer);
@@ -157,7 +164,7 @@ final class TaskNormalizerTest extends TestCase
 
     public function testShellTaskCanBeDenormalized(): void
     {
-        $objectNormalizer = new ObjectNormalizer();
+        $objectNormalizer = new ObjectNormalizer(null, null, null, new PropertyInfoExtractor([], [new PhpDocExtractor(), new ReflectionExtractor()]));
 
         $serializer = new Serializer([new TaskNormalizer(new DateTimeNormalizer(), new DateIntervalNormalizer(), $objectNormalizer), new DateTimeNormalizer(), new DateIntervalNormalizer(), new JsonSerializableNormalizer(), $objectNormalizer], [new JsonEncoder()]);
         $objectNormalizer->setSerializer($serializer);
@@ -176,7 +183,7 @@ final class TaskNormalizerTest extends TestCase
 
     public function testTaskWithDatetimeCanBeDenormalized(): void
     {
-        $objectNormalizer = new ObjectNormalizer();
+        $objectNormalizer = new ObjectNormalizer(null, null, null, new PropertyInfoExtractor([], [new PhpDocExtractor(), new ReflectionExtractor()]));
 
         $serializer = new Serializer([new TaskNormalizer(new DateTimeNormalizer(), new DateIntervalNormalizer(), $objectNormalizer), new DateTimeNormalizer(), new DateIntervalNormalizer(), new JsonSerializableNormalizer(), $objectNormalizer], [new JsonEncoder()]);
         $objectNormalizer->setSerializer($serializer);
@@ -206,7 +213,7 @@ final class TaskNormalizerTest extends TestCase
 
     public function testMessengerTaskCanBeDenormalized(): void
     {
-        $objectNormalizer = new ObjectNormalizer();
+        $objectNormalizer = new ObjectNormalizer(null, null, null, new PropertyInfoExtractor([], [new PhpDocExtractor(), new ReflectionExtractor()]));
 
         $serializer = new Serializer([new TaskNormalizer(new DateTimeNormalizer(), new DateIntervalNormalizer(), $objectNormalizer), $objectNormalizer], [new JsonEncoder()]);
         $objectNormalizer->setSerializer($serializer);
@@ -222,7 +229,7 @@ final class TaskNormalizerTest extends TestCase
 
     public function testNotificationTaskCanBeDenormalized(): void
     {
-        $objectNormalizer = new ObjectNormalizer();
+        $objectNormalizer = new ObjectNormalizer(null, null, null, new PropertyInfoExtractor([], [new PhpDocExtractor(), new ReflectionExtractor()]));
 
         $serializer = new Serializer([new TaskNormalizer(new DateTimeNormalizer(), new DateIntervalNormalizer(), $objectNormalizer), $objectNormalizer], [new JsonEncoder()]);
         $objectNormalizer->setSerializer($serializer);
@@ -238,7 +245,7 @@ final class TaskNormalizerTest extends TestCase
 
     public function testNotificationTaskWithMultipleRecipientsCanBeDenormalized(): void
     {
-        $objectNormalizer = new ObjectNormalizer();
+        $objectNormalizer = new ObjectNormalizer(null, null, null, new PropertyInfoExtractor([], [new PhpDocExtractor(), new ReflectionExtractor()]));
 
         $serializer = new Serializer([new TaskNormalizer(new DateTimeNormalizer(), new DateIntervalNormalizer(), $objectNormalizer), $objectNormalizer], [new JsonEncoder()]);
         $objectNormalizer->setSerializer($serializer);
@@ -257,7 +264,7 @@ final class TaskNormalizerTest extends TestCase
 
     public function testHttpTaskCanBeDenormalized(): void
     {
-        $objectNormalizer = new ObjectNormalizer();
+        $objectNormalizer = new ObjectNormalizer(null, null, null, new PropertyInfoExtractor([], [new PhpDocExtractor(), new ReflectionExtractor()]));
 
         $serializer = new Serializer([new TaskNormalizer(new DateTimeNormalizer(), new DateIntervalNormalizer(), $objectNormalizer), $objectNormalizer], [new JsonEncoder()]);
         $objectNormalizer->setSerializer($serializer);

@@ -88,6 +88,14 @@ interface TaskInterface
 
     public function setExecutionRelativeDeadline(\DateInterval $executionRelativeDeadline = null): TaskInterface;
 
+    public function setExecutionStartDate(string $executionStartDate = null): TaskInterface;
+
+    public function getExecutionStartDate(): ?\DateTimeImmutable;
+
+    public function setExecutionEndDate(string $executionEndDate = null): TaskInterface;
+
+    public function getExecutionEndDate(): ?\DateTimeImmutable;
+
     public function setExecutionStartTime(\DateTimeImmutable $executionStartTime = null): TaskInterface;
 
     public function getExecutionStartTime(): ?\DateTimeImmutable;

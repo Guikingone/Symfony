@@ -13,11 +13,10 @@ namespace Symfony\Component\Scheduler\Tests\EventListener;
 
 use PHPUnit\Framework\TestCase;
 use Psr\Log\LoggerInterface;
-use Symfony\Bridge\PhpUnit\ClockMock;
 use Symfony\Component\Scheduler\Event\WorkerRunningEvent;
 use Symfony\Component\Scheduler\Event\WorkerStartedEvent;
-use Symfony\Component\Scheduler\Event\WorkerStoppedEvent;
 use Symfony\Component\Scheduler\EventListener\StopWorkerOnTimeLimitSubscriber;
+use Symfony\Component\Scheduler\Task\TaskInterface;
 use Symfony\Component\Scheduler\Worker\WorkerInterface;
 
 /**
@@ -28,63 +27,66 @@ final class StopWorkerOnTimeLimitSubscriberTest extends TestCase
     public function testSubscriberIsConfigured(): void
     {
         static::assertArrayHasKey(WorkerStartedEvent::class, StopWorkerOnTimeLimitSubscriber::getSubscribedEvents());
-        static::assertArrayHasKey(WorkerStoppedEvent::class, StopWorkerOnTimeLimitSubscriber::getSubscribedEvents());
+        static::assertArrayHasKey(WorkerRunningEvent::class, StopWorkerOnTimeLimitSubscriber::getSubscribedEvents());
     }
 
-    public function testSubscriberCannotWorkWithInvalidWorkerState(): void
+    /**
+     * @dataProvider provideTimeLimit
+     *
+     * @group time-sensitive
+     */
+    public function testSubscriberCannotStopWithoutExceededTimeLimit(int $timeLimit): void
     {
+        $task = $this->createMock(TaskInterface::class);
+        $task->expects(self::never())->method('getName');
+
         $worker = $this->createMock(WorkerInterface::class);
-        $worker->expects(self::once())->method('isRunning')->willReturn(false);
+        $worker->expects(self::never())->method('stop');
+        $worker->expects(self::never())->method('getLastExecutedTask');
 
-        $subscriber = new StopWorkerOnTimeLimitSubscriber(1);
-        $event = new WorkerStartedEvent($worker);
-
-        $subscriber->onWorkerStarted($event);
-    }
-
-    public function testSubscriberCanWorkWithValidWorkerState(): void
-    {
-        $worker = $this->createMock(WorkerInterface::class);
-        $worker->expects(self::once())->method('isRunning')->willReturn(true);
-
-        $subscriber = new StopWorkerOnTimeLimitSubscriber(1);
-        $event = new WorkerStartedEvent($worker);
-
-        $subscriber->onWorkerStarted($event);
-    }
-
-    public function testSubscriberCannotStopOnInvalidTime(): void
-    {
         $logger = $this->createMock(LoggerInterface::class);
         $logger->expects(self::never())->method('info');
 
-        $worker = $this->createMock(WorkerInterface::class);
-        $worker->expects(self::once())->method('isRunning')->willReturn(true);
-        $worker->expects(self::never())->method('stop');
-
-        $subscriber = new StopWorkerOnTimeLimitSubscriber(1);
+        $subscriber = new StopWorkerOnTimeLimitSubscriber($timeLimit, $logger);
         $event = new WorkerRunningEvent($worker);
-        $workerStartedEvent = new WorkerStartedEvent($worker);
 
-        $subscriber->onWorkerStarted($workerStartedEvent);
+        $subscriber->onWorkerStarted();
         $subscriber->onWorkerRunning($event);
     }
 
-    public function testSubscriberCannotStopOnValidTime(): void
+    /**
+     * @dataProvider provideTimeLimit
+     *
+     * @group time-sensitive
+     */
+    public function testSubscriberCanStopOnExceededTimeLimit(int $timeLimit): void
     {
-        $logger = $this->createMock(LoggerInterface::class);
-        $logger->expects(self::once())->method('info');
+        $task = $this->createMock(TaskInterface::class);
+        $task->expects(self::once())->method('getName')->willReturn('foo');
 
         $worker = $this->createMock(WorkerInterface::class);
-        $worker->expects(self::once())->method('isRunning')->willReturn(true);
         $worker->expects(self::once())->method('stop');
+        $worker->expects(self::exactly(2))->method('getLastExecutedTask')->willReturn($task);
 
-        $subscriber = new StopWorkerOnTimeLimitSubscriber(1, $logger);
+        $logger = $this->createMock(LoggerInterface::class);
+        $logger->expects(self::once())->method('info')->with(
+            self::equalTo(sprintf('Worker stopped due to time limit of %d seconds exceeded', $timeLimit)),
+            [
+                'lastExecutedTask' => 'foo',
+            ]
+        );
+
+        $subscriber = new StopWorkerOnTimeLimitSubscriber($timeLimit, $logger);
         $event = new WorkerRunningEvent($worker);
-        $workerStartedEvent = new WorkerStartedEvent($worker);
 
-        $subscriber->onWorkerStarted($workerStartedEvent);
-        ClockMock::sleep(1);
+        $subscriber->onWorkerStarted();
+        sleep($timeLimit + 1);
         $subscriber->onWorkerRunning($event);
+    }
+
+    public function provideTimeLimit(): \Generator
+    {
+        yield [1];
+        yield [2];
     }
 }

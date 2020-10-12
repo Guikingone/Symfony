@@ -13,8 +13,14 @@ namespace Symfony\Component\Scheduler\Tests\Transport;
 
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Scheduler\SchedulePolicy\SchedulePolicyOrchestrator;
+use Symfony\Component\Scheduler\Transport\FailoverTransport;
+use Symfony\Component\Scheduler\Transport\FailoverTransportFactory;
+use Symfony\Component\Scheduler\Transport\FilesystemTransport;
+use Symfony\Component\Scheduler\Transport\FilesystemTransportFactory;
 use Symfony\Component\Scheduler\Transport\InMemoryTransport;
 use Symfony\Component\Scheduler\Transport\InMemoryTransportFactory;
+use Symfony\Component\Scheduler\Transport\RoundRobinTransport;
+use Symfony\Component\Scheduler\Transport\RoundRobinTransportFactory;
 use Symfony\Component\Scheduler\Transport\TransportFactory;
 use Symfony\Component\Serializer\SerializerInterface;
 
@@ -23,14 +29,70 @@ use Symfony\Component\Serializer\SerializerInterface;
  */
 final class TransportFactoryTest extends TestCase
 {
-    public function testInMemoryTransportCanBeCreated(): void
+    /**
+     * @dataProvider provideFilesystemDsn
+     */
+    public function testFilesystemTransportCanBeCreated(string $dsn): void
+    {
+        $serializer = $this->createMock(SerializerInterface::class);
+
+        $factory = new TransportFactory([new FilesystemTransportFactory()]);
+
+        static::assertInstanceOf(
+            FilesystemTransport::class,
+            $factory->createTransport($dsn, [], $serializer, new SchedulePolicyOrchestrator([]))
+        );
+    }
+
+    /**
+     * @dataProvider provideMemoryDsn
+     */
+    public function testInMemoryTransportCanBeCreated(string $dsn): void
     {
         $serializer = $this->createMock(SerializerInterface::class);
 
         $factory = new TransportFactory([new InMemoryTransportFactory()]);
 
-        $transport = $factory->createTransport('memory://first_in_first_out', [], $serializer, new SchedulePolicyOrchestrator([]));
-        static::assertInstanceOf(InMemoryTransport::class, $transport);
+        static::assertInstanceOf(
+            InMemoryTransport::class,
+            $factory->createTransport($dsn, [], $serializer, new SchedulePolicyOrchestrator([]))
+        );
+    }
+
+    /**
+     * @dataProvider provideFailoverDsn
+     */
+    public function testFailOverTransportCanBeCreated(string $dsn): void
+    {
+        $serializer = $this->createMock(SerializerInterface::class);
+
+        $factory = new TransportFactory([new FailoverTransportFactory([
+            new InMemoryTransportFactory(),
+            new FilesystemTransportFactory(),
+        ])]);
+
+        static::assertInstanceOf(
+            FailoverTransport::class,
+            $factory->createTransport($dsn, [], $serializer, new SchedulePolicyOrchestrator([]))
+        );
+    }
+
+    /**
+     * @dataProvider provideRoundRobinDsn
+     */
+    public function testRoundRobinTransportCanBeCreated(string $dsn): void
+    {
+        $serializer = $this->createMock(SerializerInterface::class);
+
+        $factory = new TransportFactory([new RoundRobinTransportFactory([
+            new InMemoryTransportFactory(),
+            new FilesystemTransportFactory(),
+        ])]);
+
+        static::assertInstanceOf(
+            RoundRobinTransport::class,
+            $factory->createTransport($dsn, [], $serializer, new SchedulePolicyOrchestrator([]))
+        );
     }
 
     public function testRedisTransportCannotBeCreated(): void
@@ -53,5 +115,28 @@ final class TransportFactoryTest extends TestCase
         static::expectException(\InvalidArgumentException::class);
         static::expectExceptionMessage('No transport supports the given Scheduler DSN "doctrine://". Run "composer require symfony/doctrine-scheduler" to install Doctrine transport.');
         $factory->createTransport('doctrine://', [], $serializer, new SchedulePolicyOrchestrator([]));
+    }
+
+    public function provideFilesystemDsn(): \Generator
+    {
+        yield 'Full' => ['filesystem://first_in_first_out'];
+        yield 'Short' => ['fs://first_in_first_out'];
+    }
+
+    public function provideMemoryDsn(): \Generator
+    {
+        yield 'Full' => ['memory://first_in_first_out'];
+    }
+
+    public function provideFailoverDsn(): \Generator
+    {
+        yield 'Full' => ['failover://(fs://first_in_first_out || memory://first_in_first_out)'];
+        yield 'Short' => ['fo://(fs://first_in_first_out || memory://first_in_first_out)'];
+    }
+
+    public function provideRoundRobinDsn(): \Generator
+    {
+        yield 'Full' => ['roundrobin://(fs://first_in_first_out || memory://first_in_first_out)'];
+        yield 'Short' => ['rr://(fs://first_in_first_out || memory://first_in_first_out)'];
     }
 }

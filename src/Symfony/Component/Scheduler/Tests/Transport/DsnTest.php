@@ -37,7 +37,7 @@ final class DsnTest extends TestCase
         ];
         yield 'Doctrine transport DSN - Default' => [
             'doctrine://default',
-            new Dsn('doctrine', 'default'),
+            new Dsn('doctrine', 'default', null, null, null, null, []),
         ];
         yield 'Doctrine transport DSN - Table name' => [
             'doctrine://default?table_name=_symfony_scheduler_tasks',
@@ -61,16 +61,22 @@ final class DsnTest extends TestCase
         ];
         yield 'Memory transport DSN - Default' => [
             'memory://batch',
-            new Dsn('memory', 'batch'),
+            new Dsn('memory', 'batch', null, null, null, null, []),
         ];
         yield 'Filesystem transport DSN - Default' => [
             'filesystem://first_in_first_out',
-            new Dsn('filesystem', 'first_in_first_out'),
+            new Dsn('filesystem', 'first_in_first_out', null, null, null, null, []),
         ];
         yield 'Filesystem transport DSN - Custom path' => [
             'filesystem://first_in_first_out?path=/srv/app',
             new Dsn('filesystem', 'first_in_first_out', null, null, null, null, [
                 'path' => '/srv/app',
+            ]),
+        ];
+        yield 'FailOver transport' => [
+            'failover://(memory://first_in_first_out || memory://last_in_first_out)',
+            new Dsn('failover', '(memory', '//first_in_first_out || memory://last_in_first_out)', null, null, null, [
+                'memory://first_in_first_out || memory://last_in_first_out',
             ]),
         ];
     }

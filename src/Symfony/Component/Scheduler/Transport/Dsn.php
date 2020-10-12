@@ -60,7 +60,9 @@ final class Dsn
 
         parse_str($parsedDsn['query'] ?? '', $query);
 
-        return new self($parsedDsn['scheme'], $parsedDsn['host'], $path, $user, $password, $port, $query);
+        $embeddedDsn = static::handleEmbeddedDsn($dsn);
+
+        return new self($parsedDsn['scheme'], $parsedDsn['host'], $path, $user, $password, $port, array_merge($query, $embeddedDsn));
     }
 
     public function getScheme(): string
@@ -101,5 +103,16 @@ final class Dsn
     public function getOptions(): array
     {
         return $this->options;
+    }
+
+    private static function handleEmbeddedDsn(string $dsn): array
+    {
+        preg_match('#\(([^()]|(?R))*\)#', $dsn, $matches);
+
+        if (empty($matches)) {
+            return [];
+        }
+
+        return [strtr($matches[0], ['(' => '', ')' => ''])];
     }
 }

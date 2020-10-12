@@ -14,6 +14,7 @@ namespace Symfony\Component\Scheduler\Task;
 use Cron\CronExpression;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 use Symfony\Component\Scheduler\Exception\InvalidArgumentException;
+use Symfony\Component\Scheduler\Exception\LogicException;
 
 /**
  * @author Guillaume Loulier <contact@guillaumeloulier.fr>
@@ -48,6 +49,8 @@ abstract class AbstractTask implements TaskInterface
             'execution_memory_usage' => null,
             'execution_period' => null,
             'execution_relative_deadline' => null,
+            'execution_start_date' => null,
+            'execution_end_date' => null,
             'execution_start_time' => null,
             'execution_end_time' => null,
             'last_execution' => null,
@@ -75,6 +78,8 @@ abstract class AbstractTask implements TaskInterface
         $resolver->setAllowedTypes('execution_delay', ['int', 'null']);
         $resolver->setAllowedTypes('execution_memory_usage', ['int', 'null']);
         $resolver->setAllowedTypes('execution_relative_deadline', [\DateInterval::class, 'null']);
+        $resolver->setAllowedTypes('execution_start_date', ['string', 'null']);
+        $resolver->setAllowedTypes('execution_end_date', ['string', 'null']);
         $resolver->setAllowedTypes('execution_start_time', [\DateTimeImmutable::class, 'null']);
         $resolver->setAllowedTypes('execution_end_time', [\DateTimeImmutable::class, 'null']);
         $resolver->setAllowedTypes('last_execution', [\DateTimeImmutable::class, 'null']);
@@ -93,6 +98,12 @@ abstract class AbstractTask implements TaskInterface
 
         $resolver->setAllowedValues('expression', function (string $expression): bool {
             return $this->validateExpression($expression);
+        });
+        $resolver->setAllowedValues('execution_start_date', function (string $executionStartDate = null): bool {
+            return $this->validateDate($executionStartDate);
+        });
+        $resolver->setAllowedValues('execution_end_date', function (string $executionEndDate = null): bool {
+            return $this->validateDate($executionEndDate);
         });
         $resolver->setAllowedValues('nice', function (int $nice = null): bool {
             return $this->validateNice($nice);
@@ -114,6 +125,8 @@ abstract class AbstractTask implements TaskInterface
         $resolver->setInfo('execution_memory_usage', '[INTERNAL] The amount of memory used described as an integer');
         $resolver->setInfo('execution_period', '[Internal] Used to store the period during a task has been executed thanks to deadline sort');
         $resolver->setInfo('execution_relative_deadline', 'The estimated ending date of the task execution, must be a \DateInterval');
+        $resolver->setInfo('execution_start_time', 'The start date since the task can be executed');
+        $resolver->setInfo('execution_end_time', 'The limit date since the task must not be executed');
         $resolver->setInfo('execution_start_time', '[Internal] The start time of the task execution, mostly used by the internal sort process');
         $resolver->setInfo('execution_end_time', '[Internal] The date where the execution is finished, mostly used by the internal sort process');
         $resolver->setInfo('last_execution', 'Define the last execution date of the task');
@@ -282,6 +295,38 @@ abstract class AbstractTask implements TaskInterface
         $this->options['execution_relative_deadline'] = $executionRelativeDeadline;
 
         return $this;
+    }
+
+    public function setExecutionStartDate(string $executionStartDate = null): TaskInterface
+    {
+        if (!$this->validateDate($executionStartDate)) {
+            throw new InvalidArgumentException('The date could not be created');
+        }
+
+        $this->options['execution_start_date'] = null !== $executionStartDate ? new \DateTimeImmutable($executionStartDate) : null;
+
+        return $this;
+    }
+
+    public function getExecutionStartDate(): ?\DateTimeImmutable
+    {
+        return $this->options['execution_start_date'];
+    }
+
+    public function setExecutionEndDate(string $executionEndDate = null): TaskInterface
+    {
+        if (!$this->validateDate($executionEndDate)) {
+            throw new InvalidArgumentException('The date could not be created');
+        }
+
+        $this->options['execution_end_date'] = null !== $executionEndDate ? new \DateTimeImmutable($executionEndDate) : null;
+
+        return $this;
+    }
+
+    public function getExecutionEndDate(): ?\DateTimeImmutable
+    {
+        return $this->options['execution_end_date'];
     }
 
     public function setExecutionStartTime(\DateTimeImmutable $executionStartTime = null): TaskInterface
@@ -522,5 +567,22 @@ abstract class AbstractTask implements TaskInterface
     private function validateExecutionState(string $executionState = null): bool
     {
         return null === $executionState ? true : \in_array($executionState, TaskInterface::EXECUTION_STATES);
+    }
+
+    private function validateDate(?string $date = null): bool
+    {
+        if (null === $date) {
+            return true;
+        }
+
+        if (false === strtotime($date)) {
+            return false;
+        }
+
+        if (new \DateTimeImmutable('now', $this->getTimezone()) > new \DateTimeImmutable($date)) {
+            throw new LogicException('The date cannot be previous to the current date');
+        }
+
+        return true;
     }
 }

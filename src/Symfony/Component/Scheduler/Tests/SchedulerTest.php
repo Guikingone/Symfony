@@ -181,6 +181,72 @@ final class SchedulerTest extends TestCase
         static::assertNotEmpty($resumedTasks);
     }
 
+    public function testDueTasksCanBeReturnedWithStartAndEndDate(): void
+    {
+        $task = $this->createMock(TaskInterface::class);
+        $task->expects(self::exactly(6))->method('getName')->willReturn('foo');
+        $task->expects(self::exactly(1))->method('getExpression')->willReturn('* * * * *');
+        $task->expects(self::once())->method('getTimezone')->willReturn(new \DateTimeZone('UTC'));
+        $task->expects(self::exactly(3))->method('getExecutionStartDate')->willReturn(new \DateTimeImmutable('- 2 minutes'));
+        $task->expects(self::exactly(2))->method('getExecutionEndDate')->willReturn(new \DateTimeImmutable('+ 10 minutes'));
+
+        $schedulePolicyOrchestrator = $this->createMock(SchedulePolicyOrchestratorInterface::class);
+        $schedulePolicyOrchestrator->expects(self::once())->method('sort')->willReturn([$task->getName() => $task]);
+
+        $transport = new InMemoryTransport(['executionMode' => 'first_in_first_out'], $schedulePolicyOrchestrator);
+        $scheduler = new Scheduler('UTC', $transport);
+
+        $scheduler->schedule($task);
+        $dueTasks = $scheduler->getDueTasks();
+
+        static::assertInstanceOf(TaskListInterface::class, $dueTasks);
+        static::assertNotEmpty($dueTasks);
+    }
+
+    public function testDueTasksCanBeReturnedWithPreviousStartDate(): void
+    {
+        $task = $this->createMock(TaskInterface::class);
+        $task->expects(self::exactly(6))->method('getName')->willReturn('foo');
+        $task->expects(self::exactly(1))->method('getExpression')->willReturn('* * * * *');
+        $task->expects(self::once())->method('getTimezone')->willReturn(new \DateTimeZone('UTC'));
+        $task->expects(self::exactly(4))->method('getExecutionStartDate')->willReturn(new \DateTimeImmutable('- 2 minutes'));
+        $task->expects(self::exactly(1))->method('getExecutionEndDate')->willReturn(null);
+
+        $schedulePolicyOrchestrator = $this->createMock(SchedulePolicyOrchestratorInterface::class);
+        $schedulePolicyOrchestrator->expects(self::once())->method('sort')->willReturn([$task->getName() => $task]);
+
+        $transport = new InMemoryTransport(['executionMode' => 'first_in_first_out'], $schedulePolicyOrchestrator);
+        $scheduler = new Scheduler('UTC', $transport);
+
+        $scheduler->schedule($task);
+        $dueTasks = $scheduler->getDueTasks();
+
+        static::assertInstanceOf(TaskListInterface::class, $dueTasks);
+        static::assertNotEmpty($dueTasks);
+    }
+
+    public function testDueTasksCanBeReturnedWithEndDate(): void
+    {
+        $task = $this->createMock(TaskInterface::class);
+        $task->expects(self::exactly(6))->method('getName')->willReturn('foo');
+        $task->expects(self::exactly(1))->method('getExpression')->willReturn('* * * * *');
+        $task->expects(self::once())->method('getTimezone')->willReturn(new \DateTimeZone('UTC'));
+        $task->expects(self::exactly(2))->method('getExecutionStartDate')->willReturn(null);
+        $task->expects(self::exactly(2))->method('getExecutionEndDate')->willReturn(new \DateTimeImmutable('+ 10 minutes'));
+
+        $schedulePolicyOrchestrator = $this->createMock(SchedulePolicyOrchestratorInterface::class);
+        $schedulePolicyOrchestrator->expects(self::once())->method('sort')->willReturn([$task->getName() => $task]);
+
+        $transport = new InMemoryTransport(['executionMode' => 'first_in_first_out'], $schedulePolicyOrchestrator);
+        $scheduler = new Scheduler('UTC', $transport);
+
+        $scheduler->schedule($task);
+        $dueTasks = $scheduler->getDueTasks();
+
+        static::assertInstanceOf(TaskListInterface::class, $dueTasks);
+        static::assertNotEmpty($dueTasks);
+    }
+
     public function provideTasks(): \Generator
     {
         yield 'Shell tasks' => [

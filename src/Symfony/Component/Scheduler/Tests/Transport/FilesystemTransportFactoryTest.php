@@ -54,5 +54,9 @@ final class FilesystemTransportFactoryTest extends TestCase
 
         static::assertInstanceOf(TransportInterface::class, $transport);
         static::assertInstanceOf(FilesystemTransport::class, $transport);
+        static::assertArrayHasKey('execution_mode', $transport->getOptions());
+        static::assertSame('first_in_first_out', $transport->getOptions()['execution_mode']);
+        static::assertArrayHasKey('path', $transport->getOptions());
+        static::assertSame('/srv/app', $transport->getOptions()['path']);
     }
 }

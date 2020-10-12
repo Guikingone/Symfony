@@ -45,7 +45,7 @@ use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
 final class Worker implements WorkerInterface
 {
     private const DEFAULT_OPTIONS = [
-        'sleep_duration_delay' => 1,
+        'sleepDurationDelay' => 1,
     ];
 
     private $runners;
@@ -58,6 +58,7 @@ final class Worker implements WorkerInterface
     private $store;
     private $scheduler;
     private $options;
+    private $lastExecutedTask;
 
     /**
      * @param iterable|RunnerInterface[]                      $runners
@@ -108,7 +109,7 @@ final class Worker implements WorkerInterface
                     $lockedTask = $this->getLock($task);
 
                     if (null !== $task->getExecutionDelay() && 0 !== $this->getSleepDuration()) {
-                        usleep($task->getExecutionDelay() / 1000000);
+                        usleep($task->getExecutionDelay());
                     }
 
                     try {
@@ -124,6 +125,7 @@ final class Worker implements WorkerInterface
                     } finally {
                         $lockedTask->release();
                         $this->running = false;
+                        $this->lastExecutedTask = $task;
                         $this->dispatch(new WorkerRunningEvent($this, true));
                     }
 
@@ -182,6 +184,14 @@ final class Worker implements WorkerInterface
         return $this->failedTasks;
     }
 
+    /**
+     * {@inheritdoc}
+     */
+    public function getLastExecutedTask(): ?TaskInterface
+    {
+        return $this->lastExecutedTask;
+    }
+
     private function checkTaskState(TaskInterface $task): bool
     {
         if (TaskInterface::UNDEFINED === $task->getState()) {
@@ -190,7 +200,7 @@ final class Worker implements WorkerInterface
 
         if (\in_array($task->getState(), [TaskInterface::PAUSED, TaskInterface::DISABLED])) {
             $this->logger->info(sprintf('The following task "%s" is paused|disabled, consider enable it if it should be executed!', $task->getName()), [
-                'task' => $task->getName(),
+                'name' => $task->getName(),
                 'expression' => $task->getExpression(),
                 'state' => $task->getState(),
             ]);
@@ -241,7 +251,7 @@ final class Worker implements WorkerInterface
         $nextExecutionDate = new \DateTimeImmutable('+ 1 minute', $this->scheduler->getTimezone());
         $updatedNextExecutionDate = $nextExecutionDate->setTime((int) $nextExecutionDate->format('H'), (int) $nextExecutionDate->format('i'), 0);
 
-        return (new \DateTimeImmutable('now', $this->scheduler->getTimezone()))->diff($updatedNextExecutionDate)->s + $this->options['sleep_duration_delay'];
+        return (new \DateTimeImmutable('now', $this->scheduler->getTimezone()))->diff($updatedNextExecutionDate)->s + $this->options['sleepDurationDelay'];
     }
 
     private function dispatch(Event $event): void

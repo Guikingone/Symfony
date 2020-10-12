@@ -13,9 +13,7 @@ namespace Symfony\Component\Scheduler\Tests\DependencyInjection;
 
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
-use Symfony\Component\Scheduler\DataCollector\SchedulerDataCollector;
 use Symfony\Component\Scheduler\DependencyInjection\SchedulerPass;
-use Symfony\Component\Scheduler\Scheduler;
 use Symfony\Component\Scheduler\Task\TaskInterface;
 
 /**
@@ -23,26 +21,31 @@ use Symfony\Component\Scheduler\Task\TaskInterface;
  */
 final class SchedulerPassTest extends TestCase
 {
-    public function testEntryPointCanBeGeneratedWithValidEntryPoints(): void
-    {
-        $container = $this->getContainerBuilder();
-        $container->register('scheduler.foo_task', TaskInterface::class)->addTag('scheduler.entry_point');
-
-        (new SchedulerPass())->process($container);
-        static::assertTrue($container->hasDefinition('scheduler.foo_entry_point'));
-        static::assertTrue($container->getDefinition('scheduler.foo_entry_point')->hasMethodCall('schedule'));
-    }
-
-    private function getContainerBuilder(string $schedulerId = 'scheduler'): ContainerBuilder
+    public function testSchedulerExtraCannotBeRegisteredWithoutDependency(): void
     {
         $container = new ContainerBuilder();
-        $container->setParameter('kernel.debug', true);
-        $container->register($schedulerId, Scheduler::class)->addTag('scheduler.hub');
-        if ('scheduler' !== $schedulerId) {
-            $container->setAlias('scheduler', $schedulerId);
-        }
-        $container->register('scheduler.data_collector', SchedulerDataCollector::class);
+        $container->register('scheduler.foo_task', TaskInterface::class)->addTag('scheduler.extra', [
+            'require' => 'scheduler.task_builder',
+            'tag' => 'scheduler.tag',
+        ]);
 
-        return $container;
+        (new SchedulerPass())->process($container);
+
+        static::assertFalse($container->hasDefinition('scheduler.foo_task'));
+    }
+
+    public function testSchedulerExtraCanBeRegisteredWithDependency(): void
+    {
+        $container = new ContainerBuilder();
+        $container->register('scheduler.task_builder', \stdClass::class);
+        $container->register('scheduler.foo_task', TaskInterface::class)->addTag('scheduler.extra', [
+            'require' => 'scheduler.task_builder',
+            'tag' => 'scheduler.tag',
+        ]);
+
+        (new SchedulerPass())->process($container);
+
+        static::assertTrue($container->hasDefinition('scheduler.foo_task'));
+        static::assertTrue($container->getDefinition('scheduler.foo_task')->hasTag('scheduler.tag'));
     }
 }

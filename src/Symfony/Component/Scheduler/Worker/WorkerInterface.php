@@ -60,4 +60,6 @@ interface WorkerInterface
      * @return TaskListInterface
      */
     public function getFailedTasks(): TaskListInterface;
+
+    public function getLastExecutedTask(): ?TaskInterface;
 }

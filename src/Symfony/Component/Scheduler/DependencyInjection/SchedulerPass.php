@@ -21,25 +21,31 @@ use Symfony\Component\DependencyInjection\ContainerBuilder;
  */
 final class SchedulerPass implements CompilerPassInterface
 {
-    private $schedulerTaskTag;
+    private $schedulerExtraTag;
 
-    public function __construct(string $schedulerTaskTag = 'scheduler.task')
+    public function __construct(string $schedulerExtraTag = 'scheduler.extra')
     {
-        $this->schedulerTaskTag = $schedulerTaskTag;
+        $this->schedulerExtraTag = $schedulerExtraTag;
     }
 
     /**
      * {@inheritdoc}
      */
-    public function process(ContainerBuilder $container)
+    public function process(ContainerBuilder $container): void
     {
-        $this->removeTasks($container);
+        $this->registerExtra($container);
     }
 
-    private function removeTasks(ContainerBuilder $container): void
+    private function registerExtra(ContainerBuilder $container): void
     {
-        foreach ($container->findTaggedServiceIds($this->schedulerTaskTag) as $task) {
-            $container->removeDefinition($task);
+        foreach ($container->findTaggedServiceIds($this->schedulerExtraTag) as $service => $args) {
+            if (!$container->hasDefinition($args[0]['require'])) {
+                $container->removeDefinition($service);
+
+                continue;
+            }
+
+            $container->getDefinition($service)->addTag($args[0]['tag']);
         }
     }
 }

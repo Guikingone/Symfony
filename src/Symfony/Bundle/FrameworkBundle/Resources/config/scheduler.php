@@ -39,7 +39,6 @@ use Symfony\Component\Scheduler\Task\Builder\ShellBuilder;
 use Symfony\Component\Scheduler\Task\TaskBuilder;
 use Symfony\Component\Scheduler\Task\TaskBuilderInterface;
 use Symfony\Component\Scheduler\Transport\FilesystemTransportFactory;
-use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Scheduler\EventListener\TaskSubscriber;
 use Symfony\Component\Scheduler\Expression\ExpressionFactory;
 use Symfony\Component\Scheduler\Messenger\TaskMessageHandler;
@@ -206,19 +205,28 @@ return static function (ContainerConfigurator $container): void {
             ->args([
                 service('http_client')->nullOnInvalid(),
             ])
-            ->tag('scheduler.runner')
+            ->tag('scheduler.extra', [
+                'require' => 'http_client',
+                'tag' => 'scheduler.runner',
+            ])
 
         ->set('scheduler.messenger_runner', MessengerTaskRunner::class)
             ->args([
-                service(MessageBusInterface::class)->nullOnInvalid(),
+                service('messenger.default_bus')->nullOnInvalid(),
             ])
-            ->tag('scheduler.runner')
+            ->tag('scheduler.extra', [
+                'require' => 'messenger.default_bus',
+                'tag' => 'scheduler.runner',
+            ])
 
         ->set('scheduler.notifier_runner', NotificationTaskRunner::class)
             ->args([
                 service('notifier')->nullOnInvalid(),
             ])
-            ->tag('scheduler.runner')
+            ->tag('scheduler.extra', [
+                'require' => 'notifier',
+                'tag' => 'scheduler.runner',
+            ])
 
         ->set('scheduler.null_runner', NullTaskRunner::class)
             ->tag('scheduler.runner')
