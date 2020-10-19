@@ -20,7 +20,7 @@ use Symfony\Component\Serializer\SerializerInterface;
  *
  * @experimental in 5.3
  */
-abstract class AbstractCompoundFactoryTransport implements TransportFactoryInterface
+abstract class AbstractCompoundTransportFactory implements TransportFactoryInterface
 {
     protected function handleTransportDsn(string $delimiter, Dsn $dsn, iterable $transportFactories, array $options, SerializerInterface $serializer, SchedulePolicyOrchestratorInterface $schedulePolicyOrchestrator): array
     {

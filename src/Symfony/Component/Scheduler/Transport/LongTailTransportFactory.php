@@ -19,7 +19,7 @@ use Symfony\Component\Serializer\SerializerInterface;
  *
  * @experimental in 5.3
  */
-final class LongTailTransportFactory extends AbstractCompoundFactoryTransport
+final class LongTailTransportFactory extends AbstractCompoundTransportFactory
 {
     /**
      * @var iterable|TransportFactoryInterface[]

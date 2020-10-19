@@ -19,7 +19,7 @@ use Symfony\Component\Serializer\SerializerInterface;
  *
  * @experimental in 5.3
  */
-final class RoundRobinTransportFactory extends AbstractCompoundFactoryTransport
+final class RoundRobinTransportFactory extends AbstractCompoundTransportFactory
 {
     /**
      * @var iterable|TransportFactoryInterface[]
