@@ -57,7 +57,7 @@ EOF
         $eventDispatcher = $this->createMock(EventDispatcher::class);
 
         $taskList = $this->createMock(TaskListInterface::class);
-        $taskList->expects(self::exactly(3))->method('getIterator')->willReturn(new \ArrayIterator([]));
+        $taskList->expects(self::once())->method('getIterator')->willReturn(new \ArrayIterator([]));
         $taskList->expects(self::once())->method('filter')->willReturnSelf();
         $taskList->expects(self::once())->method('count')->willReturn(0);
 
@@ -65,7 +65,7 @@ EOF
         $scheduler->expects(self::once())->method('getTasks')->willReturn($taskList);
 
         $worker = $this->createMock(WorkerInterface::class);
-        $worker->expects(self::once())->method('execute')->with([], ...$taskList);
+        $worker->expects(self::never())->method('execute')->with(self::equalTo([]), ...$taskList);
 
         $command = new RebootSchedulerCommand($scheduler, $worker, $eventDispatcher);
 
@@ -75,7 +75,7 @@ EOF
         $tester->execute([]);
 
         static::assertSame(Command::SUCCESS, $tester->getStatusCode());
-        static::assertStringContainsString('[OK] The scheduler have been rebooted', $tester->getDisplay());
+        static::assertStringContainsString('[OK] The scheduler have been rebooted, no tasks have been executed', $tester->getDisplay());
     }
 
     public function testRebootCanSucceedOnHydratedTasksListAndWithRebootTask(): void
@@ -91,7 +91,7 @@ EOF
         $taskList = $this->createMock(TaskListInterface::class);
         $taskList->expects(self::exactly(2))->method('getIterator')->willReturn(new \ArrayIterator([$task]));
         $taskList->expects(self::once())->method('filter')->willReturnSelf();
-        $taskList->expects(self::once())->method('count')->willReturn(1);
+        $taskList->expects(self::exactly(2))->method('count')->willReturn(1);
 
         $scheduler = $this->createMock(SchedulerInterface::class);
         $scheduler->expects(self::once())->method('getTasks')->willReturn($taskList);

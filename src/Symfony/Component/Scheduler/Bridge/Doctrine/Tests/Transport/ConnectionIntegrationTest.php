@@ -49,7 +49,10 @@ final class ConnectionIntegrationTest extends TestCase
 
         $this->sqliteFile = sys_get_temp_dir().'/symfony.scheduler.sqlite';
         $this->driverConnection = DriverManager::getConnection(['url' => sprintf('sqlite:///%s', $this->sqliteFile)]);
-        $this->connection = new Connection([], $this->driverConnection, $serializer);
+        $this->connection = new Connection([
+            'auto_setup' => true,
+            'table_name' => '_symfony_scheduler_tasks',
+        ], $this->driverConnection, $serializer);
     }
 
     /**

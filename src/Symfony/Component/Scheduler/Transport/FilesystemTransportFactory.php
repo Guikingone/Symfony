@@ -26,12 +26,12 @@ final class FilesystemTransportFactory implements TransportFactoryInterface
      */
     public function createTransport(Dsn $dsn, array $options, SerializerInterface $serializer, SchedulePolicyOrchestratorInterface $schedulePolicyOrchestrator): TransportInterface
     {
-        $finalOptions = [
+        $finalOptions = array_merge([
             'execution_mode' => $dsn->getHost(),
             'path' => $dsn->getOption('path'),
-        ];
+        ], $options);
 
-        return new FilesystemTransport($finalOptions['path'], array_merge($finalOptions, $options), $serializer, $schedulePolicyOrchestrator);
+        return new FilesystemTransport($finalOptions['path'], $finalOptions, $serializer, $schedulePolicyOrchestrator);
     }
 
     /**

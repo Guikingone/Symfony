@@ -89,6 +89,8 @@ final class Worker implements WorkerInterface
 
         $this->dispatch(new WorkerStartedEvent($this));
 
+        $tasksCount = 0;
+
         while (!$this->shouldStop) {
             if (!$tasks) {
                 $tasks = $this->scheduler->getDueTasks();
@@ -128,6 +130,8 @@ final class Worker implements WorkerInterface
                         $this->running = false;
                         $this->lastExecutedTask = $task;
                         $this->dispatch(new WorkerRunningEvent($this, true));
+
+                        ++$tasksCount;
                     }
 
                     if ($this->shouldStop) {
@@ -135,16 +139,16 @@ final class Worker implements WorkerInterface
                     }
                 }
 
-                if ($this->shouldStop) {
+                if ($this->shouldStop || ($tasksCount === \count($tasks) && !$this->options['sleepUntilNextMinute'])) {
                     break 2;
                 }
             }
 
             if ($this->options['sleepUntilNextMinute']) {
                 sleep($this->getSleepDuration());
-            }
 
-            $this->execute($options);
+                $this->execute($options);
+            }
         }
 
         $this->dispatch(new WorkerStoppedEvent($this));

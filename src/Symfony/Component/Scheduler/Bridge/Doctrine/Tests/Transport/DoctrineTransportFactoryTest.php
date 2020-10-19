@@ -34,6 +34,7 @@ final class DoctrineTransportFactoryTest extends TestCase
 
         static::assertFalse($factory->support('test://'));
         static::assertTrue($factory->support('doctrine://'));
+        static::assertTrue($factory->support('dbal://'));
     }
 
     public function testFactoryCannotReturnUndefinedTransport(): void

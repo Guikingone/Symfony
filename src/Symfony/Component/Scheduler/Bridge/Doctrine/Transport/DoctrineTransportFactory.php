@@ -41,7 +41,7 @@ final class DoctrineTransportFactory implements TransportFactoryInterface
         $connectionOptions = [
             'auto_setup' => $dsn->getOption('auto_setup'),
             'connection' => $dsn->getHost(),
-            'execution_mode' => $dsn->getOption('executionMode'),
+            'execution_mode' => $dsn->getOption('execution_mode'),
             'table_name' => $dsn->getOption('tableName'),
         ];
 
@@ -51,9 +51,7 @@ final class DoctrineTransportFactory implements TransportFactoryInterface
             throw new TransportException(sprintf('Could not find Doctrine connection from Scheduler DSN "doctrine://%s".', $dsn->getHost()));
         }
 
-        $connection = new Connection($connectionOptions, $doctrineConnection, $serializer);
-
-        return new DoctrineTransport($connectionOptions, $connection);
+        return new DoctrineTransport($connectionOptions, $doctrineConnection, $serializer);
     }
 
     /**
@@ -61,6 +59,6 @@ final class DoctrineTransportFactory implements TransportFactoryInterface
      */
     public function support(string $dsn, array $options = []): bool
     {
-        return 0 === strpos($dsn, 'doctrine://');
+        return 0 === strpos($dsn, 'doctrine://') || 0 === strpos($dsn, 'dbal://');
     }
 }

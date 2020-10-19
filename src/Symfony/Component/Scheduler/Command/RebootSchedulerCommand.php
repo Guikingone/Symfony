@@ -106,14 +106,16 @@ EOF
         $tasks = $this->scheduler->getTasks()->filter(function (TaskInterface $task): bool {
             return ExpressionFactory::REBOOT_MACRO === $task->getExpression();
         });
-        if (empty($tasks)) {
-            $io->success('The scheduler have been rebooted');
+
+        if (0 === $tasks->count()) {
+            $io->success('The scheduler have been rebooted, no tasks have been executed');
 
             return self::SUCCESS;
         }
 
         while ($this->worker->isRunning()) {
             $io->warning('The scheduler cannot be rebooted as the worker is not available, retrying to access it');
+
             sleep(1);
         }
 

@@ -35,15 +35,23 @@ final class RedisTransport extends AbstractTransport
     {
         $this->defineOptions(array_merge([
             'host' => '127.0.0.1',
+            'password' => null,
             'port' => 6379,
+            'scheme' => null,
             'timeout' => 30,
+            'auth' => null,
             'dbindex' => 0,
+            'transaction_mode' => null,
             'list' => '_symfony_scheduler_tasks',
         ], $options), [
             'host' => ['string'],
+            'password' => ['string', 'null'],
             'port' => ['int'],
+            'scheme' => ['string', 'null'],
             'timeout' => ['int'],
+            'auth' => ['string', 'null'],
             'dbindex' => ['int'],
+            'transaction_mode' => ['string', 'null'],
             'list' => ['string'],
         ]);
 

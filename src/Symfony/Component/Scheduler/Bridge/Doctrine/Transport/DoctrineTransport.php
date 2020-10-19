@@ -15,31 +15,39 @@ use Doctrine\DBAL\Connection as DbalConnection;
 use Doctrine\DBAL\Schema\Schema;
 use Symfony\Component\Scheduler\Task\TaskInterface;
 use Symfony\Component\Scheduler\Task\TaskListInterface;
-use Symfony\Component\Scheduler\Transport\ConnectionInterface;
-use Symfony\Component\Scheduler\Transport\TransportInterface;
+use Symfony\Component\Scheduler\Transport\AbstractTransport;
+use Symfony\Component\Serializer\SerializerInterface;
 
 /**
  * @author Guillaume Loulier <contact@guillaumeloulier.fr>
  *
  * @experimental in 5.3
  */
-class DoctrineTransport implements TransportInterface
+class DoctrineTransport extends AbstractTransport
 {
     private $connection;
-    private $options;
 
-    public function __construct(array $options, ConnectionInterface $connection)
+    public function __construct(array $options, DBALConnection $driverConnection, SerializerInterface $serializer)
     {
-        $this->options = $options;
-        $this->connection = $connection;
+        $this->defineOptions(array_merge($options, [
+            'auto_setup' => true,
+            'connection' => null,
+            'table_name' => '_symfony_scheduler_tasks',
+        ]), [
+            'auto_setup' => ['bool'],
+            'connection' => ['string', 'null'],
+            'table_name' => ['string'],
+        ]);
+
+        $this->connection = new Connection($this->getOptions(), $driverConnection, $serializer);
     }
 
     /**
      * {@inheritdoc}
      */
-    public function get(string $taskName): TaskInterface
+    public function get(string $name): TaskInterface
     {
-        return $this->connection->get($taskName);
+        return $this->connection->get($name);
     }
 
     /**
@@ -61,33 +69,33 @@ class DoctrineTransport implements TransportInterface
     /**
      * {@inheritdoc}
      */
-    public function update(string $taskName, TaskInterface $updatedTask): void
+    public function update(string $name, TaskInterface $updatedTask): void
     {
-        $this->connection->update($taskName, $updatedTask);
+        $this->connection->update($name, $updatedTask);
     }
 
     /**
      * {@inheritdoc}
      */
-    public function pause(string $taskName): void
+    public function pause(string $name): void
     {
-        $this->connection->pause($taskName);
+        $this->connection->pause($name);
     }
 
     /**
      * {@inheritdoc}
      */
-    public function resume(string $taskName): void
+    public function resume(string $name): void
     {
-        $this->connection->resume($taskName);
+        $this->connection->resume($name);
     }
 
     /**
      * {@inheritdoc}
      */
-    public function delete(string $taskName): void
+    public function delete(string $name): void
     {
-        $this->connection->delete($taskName);
+        $this->connection->delete($name);
     }
 
     /**
@@ -96,14 +104,6 @@ class DoctrineTransport implements TransportInterface
     public function clear(): void
     {
         $this->connection->empty();
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function getOptions(): array
-    {
-        return $this->options;
     }
 
     public function configureSchema(Schema $schema, DbalConnection $connection): void

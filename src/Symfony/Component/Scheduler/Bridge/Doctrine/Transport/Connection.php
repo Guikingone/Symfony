@@ -37,11 +37,6 @@ use Symfony\Component\Serializer\SerializerInterface;
  */
 final class Connection implements ConnectionInterface
 {
-    private const DEFAULT_OPTIONS = [
-        'table_name' => '_symfony_scheduler_tasks',
-        'auto_setup' => true,
-    ];
-
     private $autoSetup;
     private $configuration;
     private $driverConnection;
@@ -50,7 +45,7 @@ final class Connection implements ConnectionInterface
 
     public function __construct(array $configuration, DBALConnection $driverConnection, SerializerInterface $serializer)
     {
-        $this->configuration = array_replace_recursive(static::DEFAULT_OPTIONS, $configuration);
+        $this->configuration = $configuration;
         $this->driverConnection = $driverConnection;
         $this->schemaSynchronizer = new SingleDatabaseSynchronizer($this->driverConnection);
         $this->autoSetup = $this->configuration['auto_setup'];
@@ -158,24 +153,24 @@ final class Connection implements ConnectionInterface
     /**
      * {@inheritdoc}
      */
-    public function update(string $taskName, TaskInterface $updatedTask): void
+    public function update(string $name, TaskInterface $updatedTask): void
     {
-        $this->prepareUpdate($taskName, $updatedTask);
+        $this->prepareUpdate($name, $updatedTask);
     }
 
     /**
      * {@inheritdoc}
      */
-    public function pause(string $taskName): void
+    public function pause(string $name): void
     {
         try {
-            $task = $this->get($taskName);
+            $task = $this->get($name);
             if (TaskInterface::PAUSED === $task->getState()) {
-                throw new LogicException(sprintf('The task "%s" is already paused', $taskName));
+                throw new LogicException(sprintf('The task "%s" is already paused', $name));
             }
 
             $task->setState(AbstractTask::PAUSED);
-            $this->update($taskName, $task);
+            $this->update($name, $task);
         } catch (\Throwable $throwable) {
             throw new TransportException($throwable->getMessage());
         }
@@ -184,16 +179,16 @@ final class Connection implements ConnectionInterface
     /**
      * {@inheritdoc}
      */
-    public function resume(string $taskName): void
+    public function resume(string $name): void
     {
         try {
-            $task = $this->get($taskName);
+            $task = $this->get($name);
             if (TaskInterface::ENABLED === $task->getState()) {
-                throw new LogicException(sprintf('The task "%s" is already enabled', $taskName));
+                throw new LogicException(sprintf('The task "%s" is already enabled', $name));
             }
 
             $task->setState(AbstractTask::ENABLED);
-            $this->update($taskName, $task);
+            $this->update($name, $task);
         } catch (\Throwable $throwable) {
             throw new TransportException($throwable->getMessage());
         }

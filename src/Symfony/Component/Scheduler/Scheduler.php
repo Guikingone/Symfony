@@ -68,40 +68,42 @@ final class Scheduler implements SchedulerInterface
         }
 
         $this->transport->create($task);
+
         $this->dispatch(new TaskScheduledEvent($task));
     }
 
     /**
      * {@inheritdoc}
      */
-    public function unschedule(string $taskName): void
+    public function unschedule(string $name): void
     {
-        $this->transport->delete($taskName);
-        $this->dispatch(new TaskUnscheduledEvent($taskName));
+        $this->transport->delete($name);
+
+        $this->dispatch(new TaskUnscheduledEvent($name));
     }
 
     /**
      * {@inheritdoc}
      */
-    public function update(string $taskName, TaskInterface $task): void
+    public function update(string $name, TaskInterface $task): void
     {
-        $this->transport->update($taskName, $task);
+        $this->transport->update($name, $task);
     }
 
     /**
      * {@inheritdoc}
      */
-    public function pause(string $taskName): void
+    public function pause(string $name): void
     {
-        $this->transport->pause($taskName);
+        $this->transport->pause($name);
     }
 
     /**
      * {@inheritdoc}
      */
-    public function resume(string $taskName): void
+    public function resume(string $name): void
     {
-        $this->transport->resume($taskName);
+        $this->transport->resume($name);
     }
 
     /**

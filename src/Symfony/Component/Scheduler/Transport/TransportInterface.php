@@ -23,7 +23,7 @@ use Symfony\Component\Scheduler\Task\TaskListInterface;
  */
 interface TransportInterface
 {
-    public function get(string $taskName): TaskInterface;
+    public function get(string $name): TaskInterface;
 
     /**
      * @return TaskListInterface<string|int,TaskInterface>
@@ -38,18 +38,18 @@ interface TransportInterface
     /**
      * Update an existing task using the $updatedTask payload, if the task does not exist, it should be created.
      */
-    public function update(string $taskName, TaskInterface $updatedTask): void;
+    public function update(string $name, TaskInterface $updatedTask): void;
 
-    public function delete(string $taskName): void;
+    public function delete(string $name): void;
 
     /**
      * Allow to pause a task, if the task does not exist, a {@see InvalidArgumentException} must be thrown.
      *
      * If the task exist but it's already paused, a {@see LogicException} must be thrown.
      */
-    public function pause(string $taskName): void;
+    public function pause(string $name): void;
 
-    public function resume(string $taskName): void;
+    public function resume(string $name): void;
 
     public function clear(): void;
 

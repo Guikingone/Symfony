@@ -240,7 +240,7 @@ final class TaskNormalizer implements DenormalizerInterface, NormalizerInterface
             return $innerObject instanceof \DatetimeInterface ? $this->dateTimeNormalizer->normalize($innerObject, $format, $context) : null;
         };
 
-        $dateIntervalAttributesCallback = function ($innerObject, $outerObject, string $attributeName, string $format = null, array $context = []) {
+        $dateIntervalAttributesCallback = function ($innerObject, $outerObject, string $attributeName, string $format = null, array $context = []): ?string {
             return $innerObject instanceof \DateInterval ? $this->dateIntervalNormalizer->normalize($innerObject, $format, $context) : null;
         };
 
@@ -253,7 +253,7 @@ final class TaskNormalizer implements DenormalizerInterface, NormalizerInterface
                 'executionEndTime' => $dateAttributesCallback,
                 'lastExecution' => $dateAttributesCallback,
                 'scheduledAt' => $dateAttributesCallback,
-                'timezone' => function ($innerObject, $outerObject, string $attributeName, string $format = null, array $context = []) {
+                'timezone' => function ($innerObject, $outerObject, string $attributeName, string $format = null, array $context = []): ?string {
                     return $innerObject instanceof \DateTimeZone ? $this->dateTimeZoneNormalizer->normalize($innerObject, $format, $context) : null;
                 },
             ],
