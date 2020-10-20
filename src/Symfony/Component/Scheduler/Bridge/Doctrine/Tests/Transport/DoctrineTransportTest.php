@@ -27,7 +27,6 @@ use Symfony\Component\Scheduler\Bridge\Doctrine\Transport\DoctrineTransport;
 use Symfony\Component\Scheduler\Task\NullTask;
 use Symfony\Component\Scheduler\Task\TaskInterface;
 use Symfony\Component\Scheduler\Task\TaskListInterface;
-use Symfony\Component\Scheduler\Transport\ConnectionInterface;
 use Symfony\Component\Serializer\SerializerInterface;
 
 /**
